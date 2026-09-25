@@ -15,6 +15,9 @@ const ZAP_SCHEMA = Object.freeze({
 const ZAP_UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
 function instalarZapperim() {
+  const active=Session.getActiveUser().getEmail(), owner=Session.getEffectiveUser().getEmail();
+  if(!active || !owner || active.toLowerCase()!==owner.toLowerCase())
+    throw new Error('Instalação permitida somente ao proprietário no editor Apps Script.');
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
