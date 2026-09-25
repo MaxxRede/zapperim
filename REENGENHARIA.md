@@ -1,4 +1,6 @@
-# ZAPedido novo: reengenharia da versão Lovable
+# ZAPerim: reengenharia da versão Lovable
+
+> Plano de arquitetura. O progresso e o procedimento atual de instalação estão no README.
 
 ## Diagnóstico confirmado no repositório
 
@@ -12,7 +14,7 @@
 
 1. **Frontend HTML/CSS/JS em módulos pequenos:** entrada, confirmação, Queridinhos, catálogo, carrinho e histórico. Separar `api`, `sessao`, `catalogo`, `carrinho`, `pedido`, `formatacao` e `ui`; CSS por base e componentes. Exibir 21 produtos por página, carregar imagens sob demanda e renderizar só a página visível. A experiência deve funcionar em celular e desktop, sem dependências visuais pesadas.
 2. **GAS exclusivo do ZAPedido, separado por módulos funcionais:** `Config`, `Clientes`, `Catalogo`, `Precos`, `Pedidos`, `Documentos`, `Email` e `Importacao`. Ações pequenas para `identificarCnpj`, `confirmarContato`, `listarQueridinhos`, `listarCatalogo`, `buscarProdutos`, `validarPedido`, `criarPedido`, `consultarPedido` e `reenviarEmail`. Uma ação responde somente com os dados necessários; nenhuma tela pede a lista inteira de clientes ou de pedidos. A opção inicial é servir o HTML pelo próprio Apps Script e usar chamadas assíncronas `google.script.run`, sujeita a medição de desempenho no protótipo.
-3. **Planilha operacional nova:** criada por `criarPlanilhaZapNovo()` em `Code.gs`. A planilha antiga é fonte para uma importação controlada, não recebe escritas do novo site. Importações de clientes, catálogo, preços, estoque e ranking serão escritas em lote e registrarão contagem, horário e falhas.
+3. **Planilha operacional nova:** criada por `instalarZapperim()` em `gas/Setup.gs`. A planilha antiga é fonte para uma importação controlada, não recebe escritas do novo site. Importações de clientes, catálogo, preços, estoque e ranking serão escritas em lote e registrarão contagem, horário e falhas.
 4. **Pedido imutável por versão:** `REQUISICAO_ID` evita duplicações. O GAS busca CNPJ e tabela autorizada, recalcula todos os preços/descontos/quantidades, aplica as regras comerciais e grava cabeçalho e itens sob `LockService`. Documentos e envios têm estados próprios e podem ser reprocessados sem repetir o pedido.
 5. **Segurança:** CNPJ identifica a empresa, mas sozinho não prova autorização para ver financeiro, pedidos ou preços. O acesso a dados privados exigirá verificação de contato ou outra credencial; a escolha do método precisa ser validada com a operação. Nunca disponibilizar `listarClientes`, `listarPedidos` global ou ações administrativas em um web app público.
 
@@ -44,7 +46,7 @@
 
 ## Migração sem afetar o site em uso
 
-1. Executar `criarPlanilhaZapNovo()` em **um novo projeto Apps Script** e guardar o ID retornado. A função é repetível e recusa cabeçalhos divergentes sem sobrescrevê-los.
+1. Executar `instalarZapperim()` em **um novo projeto Apps Script** e guardar o ID retornado. A função é repetível e recusa cabeçalhos divergentes sem sobrescrevê-los.
 2. Mapear cabeçalhos e amostras sem dados sensíveis das fontes atuais FINANCEIRO/302, View_BD, STQ, promoções, imagens e ranking. Construir importadores com conferência de quantidade, CNPJ, código e tabela.
 3. Criar as ações de leitura e medir p50/p95 no ambiente de teste; confirmar preço por tabela e catálogo de 21 itens.
 4. Implementar autenticação, carrinho, regras comerciais e conclusão; testar reenvio, clique duplo, falha de rede, estoque desatualizado e desconto indevido.
@@ -53,4 +55,4 @@
 
 ## Situação deste marco
 
-O instalador cria apenas o **esquema vazio** da nova base. Ele não importa dados, não publica um site e não envia e-mails. As decisões comerciais acima e o mapeamento das planilhas atuais são pré-requisitos para ativar o checkout.
+O instalador cria apenas o **esquema vazio** da nova base. As telas de homologação estão em `gas/`, mas não há implantação publicada, importação de dados antigos, PDF, XLSX ou envio ao faturamento. As decisões comerciais acima e o mapeamento das planilhas atuais são pré-requisitos para ativar o checkout.
