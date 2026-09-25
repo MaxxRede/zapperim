@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR"><head><base target="_top"><meta charset="utf-8"><title>ZAPerim • Pedidos</title>
+<?!= include_('Styles'); ?></head><body>
+<header class="top"><div class="brand">ZAP<span>erim</span></div><nav id="nav" hidden><button data-page="favoritos">♡ Queridinhos</button><button data-page="catalogo">Catálogo</button><button data-page="pedido">Pedido <span id="badge">0</span></button><button data-page="historico">Meus pedidos</button><button id="logout">Sair</button></nav></header>
+<main>
+  <div id="notice" role="status" aria-live="polite"></div>
+  <section id="entry" class="panel narrow"><h1>Acesse com seu CNPJ</h1><p>Digite os 14 dígitos para começar.</p><form id="cnpjForm"><label>CNPJ<input name="cnpj" inputmode="numeric" required placeholder="00.000.000/0000-00" maxlength="18" autocomplete="off"></label><button class="primary">Entrar</button></form></section>
+  <section id="register" class="panel narrow" hidden><h1>Novo cadastro</h1><p>O cadastro ficará pendente de análise comercial.</p><form id="registerForm" class="formgrid">
+    <label class="full">Nome ou razão social *<input name="nome" required maxlength="140"></label>
+    <label>Telefone com DDD *<input name="telefone" type="tel" required inputmode="tel"></label><label>E-mail *<input name="email" type="email" required></label>
+    <label class="full">Endereço completo *<input name="endereco" required maxlength="180"></label>
+    <label>Cidade *<input name="cidade" required></label><label>UF *<select name="uf" required><option value="">Selecione</option></select></label>
+    <label>CEP *<input name="cep" inputmode="numeric" required maxlength="9"></label><label>Complemento<input name="complemento"></label>
+    <label>Responsável *<input name="responsavel" required></label><label>Cargo *<input name="cargo" required></label>
+    <button class="primary full">Enviar cadastro</button></form><button class="link back">Voltar</button></section>
+  <section id="emailStep" class="panel narrow" hidden><h1>Confirme seu contato</h1><p id="emailHelp"></p><form id="emailForm"><label>E-mail cadastrado<input name="email" type="email" required autocomplete="email"></label><button class="primary">Enviar código</button></form><button class="link back">Voltar</button></section>
+  <section id="verify" class="panel narrow" hidden><h1>Código de acesso</h1><p>Informe o código recebido por e-mail. Ele vence em 10 minutos.</p><form id="verifyForm"><label>Código de 6 dígitos<input name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required autocomplete="one-time-code"></label><button class="primary">Confirmar</button></form><button id="resend" class="link">Reenviar código</button></section>
+  <section id="confirm" class="panel narrow" hidden><h1>Confirme seus dados</h1><p id="confirmName"></p><form id="confirmForm"><label>E-mail cadastrado<input name="email" disabled></label><label>Telefone com DDD *<input name="telefone" type="tel" required></label><label>Responsável *<input name="responsavel" required></label><label>Cargo *<input name="cargo" required></label><button class="primary">Continuar</button></form></section>
+  <section id="shop" hidden><div class="client" id="client"></div><div id="page"></div></section>
+</main><div id="modal" class="overlay" hidden></div>
+<?!= include_('App'); ?></body></html>
