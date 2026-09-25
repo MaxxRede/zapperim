@@ -1,0 +1,82 @@
+<script>
+(() => {
+  'use strict';
+  const $=s=>document.querySelector(s), money=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(n)||0)/100);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const state={cnpj:'',email:'',token:sessionStorage.getItem('zap_token')||'',profile:null,page:'favoritos',current:1,
+    search:'',brand:'',stock:false,cart:new Map(),requestId:null};
+  function rpc(method,...args){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[method](...args));}
+  function notice(message,error=false){const n=$('#notice');n.textContent=message||'';n.className=message?(error?'error':'success'):'';if(message) window.scrollTo({top:0,behavior:'smooth'});}
+  function section(id){['entry','register','emailStep','verify','confirm','shop'].forEach(x=>$('#'+x).hidden=x!==id);notice('');}
+  function busy(form,on){const b=form.querySelector('button[type=submit],button.primary');if(b)b.disabled=on;}
+  async function run(form,action){busy(form,true);try{await action();}catch(e){notice(e.message||String(e),true);}finally{busy(form,false);}}
+  function updateBadge(){ $('#badge').textContent=[...state.cart.values()].filter(x=>x.quantidade>0).length; }
+  function saveCart(){sessionStorage.setItem('zap_cart_'+state.cnpj,JSON.stringify([...state.cart.values()]));updateBadge();}
+  function setQty(product,qty){qty=Number(qty);if(!Number.isSafeInteger(qty)||qty<0||qty>10000){notice('Quantidade inválida.',true);return;}
+    if(qty>Number(product.estoque)){notice('Quantidade acima do estoque disponível.',true);return;}
+    if(qty)state.cart.set(product.codigo,{...product,quantidade:qty});else state.cart.delete(product.codigo);
+    state.requestId=null;saveCart();notice(qty?'Produto atualizado no pedido.':'Produto removido.');}
+  function showShop(){section('shop');$('#nav').hidden=false;$('#client').innerHTML=`<strong>${esc(state.profile.nome)}</strong> · CNPJ ${esc(state.profile.cnpj)} · ${esc(state.profile.uf)} · ${esc(state.profile.tipo==='PENDENTE'?'Cadastro em análise':'Cliente cadastrado')}`;renderPage();}
+  function confirmOrShop(){if(state.profile.tipo==='EXISTENTE'){$('#confirmName').textContent=state.profile.nome+' · '+state.profile.cnpj;
+      const f=$('#confirmForm');f.elements.email.value=state.profile.email;f.elements.telefone.value=state.profile.telefone;
+      f.elements.responsavel.value=state.profile.responsavel;f.elements.cargo.value=state.profile.cargo;
+      section('confirm');}else showShop();}
+  function safeImage(url){return /^https:\/\/[^\s"<>]+$/i.test(String(url))?url:'';}
+  function productCard(p){const src=safeImage(p.imagem), qty=state.cart.get(p.codigo)?.quantidade||0;
+    return `<article class="card"><img src="${esc(src)}" alt="${esc(p.descricao)}" loading="lazy" onerror="this.style.visibility='hidden'"><div class="body"><span class="muted">${esc(p.marca)} · ${esc(p.codigo)}</span><h3>${esc(p.descricao)}</h3><div class="row"><span class="price">${money(p.precoCentavos)}</span><span class="pill">${Number(p.vendidos)||0} vendidos</span></div><span class="muted">Estoque: ${Number(p.estoque)||0}</span><div class="row"><label>Qtd <input type="number" min="1" max="${Number(p.estoque)||0}" value="${qty||1}" data-qty="${esc(p.codigo)}"></label><button class="primary" data-add="${esc(p.codigo)}" ${p.estoque<=0?'disabled':''}>Adicionar</button></div></div></article>`;}
+  let visible=new Map();
+  async function renderPage(){const page=state.page;document.querySelectorAll('nav [data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+    const root=$('#page');root.innerHTML='<p>Carregando…</p>';
+    try{if(page==='pedido')return await renderOrder();if(page==='historico')return await renderHistory();
+      const result=await rpc('listarCatalogo',state.token,{pagina:state.current,busca:state.search,marca:state.brand,somenteEstoque:state.stock,favoritos:page==='favoritos'});
+      if(state.page!==page)return;
+      visible=new Map(result.itens.map(x=>[x.codigo,x]));
+      root.innerHTML=`<h1>${page==='favoritos'?'♡ Os Queridinhos':'Catálogo'}</h1><p>${result.total} produtos · ${result.paginas} páginas</p>
+        <div class="toolbar"><label>Pesquisar código, EAN ou nome<input id="search" value="${esc(state.search)}" placeholder="Buscar produtos"></label><label>Marca<select id="brand"><option value="">Todas</option>${result.marcas.map(m=>`<option value="${esc(m)}" ${m===state.brand?'selected':''}>${esc(m)}</option>`).join('')}</select></label><label><input id="stock" type="checkbox" ${state.stock?'checked':''} style="width:auto"> Apenas com estoque</label></div>
+        <div class="grid">${result.itens.map(productCard).join('')||'<p>Nenhum produto encontrado.</p>'}</div>
+        <div class="paging"><button class="secondary" data-pager="prev" ${result.pagina<=1?'disabled':''}>Anterior</button><span>${result.pagina} / ${result.paginas||1}</span><button class="secondary" data-pager="next" ${result.pagina>=result.paginas?'disabled':''}>Próxima</button></div>`;
+    }catch(e){root.textContent='Erro: '+(e.message||String(e));}}
+  async function renderOrder(){const root=$('#page'), items=[...state.cart.values()];
+    const sum=items.reduce((n,x)=>n+x.precoCentavos*x.quantidade,0);
+    root.innerHTML=`<h1>Pedido</h1><p>Valores e estoque serão conferidos novamente ao concluir.</p>
+      <details class="panel"><summary>Pedido dinâmico: digite códigos separados por espaço ou vírgula</summary><label>Códigos<textarea id="codes" rows="3"></textarea></label><button id="lookup" class="secondary">Localizar códigos</button><div id="found"></div></details>
+      <div class="panel" style="margin-top:12px"><h2>Itens (${items.length})</h2><ul class="items">${items.map(x=>`<li><div><strong>${esc(x.codigo)}</strong> · ${esc(x.descricao)}<br><span class="muted">${money(x.precoCentavos)} cada</span></div><label>Qtd<input type="number" min="0" max="${Number(x.estoque)}" value="${x.quantidade}" data-cartqty="${esc(x.codigo)}"></label><b>${money(x.precoCentavos*x.quantidade)}</b><button class="secondary" data-remove="${esc(x.codigo)}" aria-label="Remover ${esc(x.codigo)}">×</button></li>`).join('')||'<li>O pedido está vazio. Adicione produtos pelo catálogo.</li>'}</ul><div class="summary row"><strong>Subtotal</strong><strong>${money(sum)}</strong></div>
+      <label>Condição de pagamento<input value="${esc(state.profile.condicao)}" disabled></label><label>Observações<textarea id="notes" rows="3" maxlength="1000"></textarea></label><button id="finish" class="primary" ${items.length?'':'disabled'}>Concluir pedido</button></div>`;
+    const top=await rpc('topDez',state.token);if(state.page!== 'pedido')return;
+    visible=new Map(top.map(x=>[x.codigo,x]));root.insertAdjacentHTML('beforeend',`<div class="panel" style="margin-top:12px"><h2>Top 10 mais vendidos</h2><div class="grid">${top.map(productCard).join('')}</div></div>`);
+  }
+  async function renderHistory(){const root=$('#page');try{const rows=await rpc('meusPedidos',state.token);if(state.page!=='historico')return;
+    root.innerHTML=`<h1>Meus pedidos</h1><div class="panel"><ul class="items">${rows.map(x=>`<li><strong>${esc(x.id)}</strong><span>${esc(x.criadoEm)}</span><span>${esc(x.status)}</span><strong>${money(x.totalCentavos)}</strong></li>`).join('')||'<li>Nenhum pedido registrado.</li>'}</ul></div>`;
+  }catch(e){root.textContent=e.message||String(e);}}
+  let timer;
+  $('#cnpjForm').addEventListener('submit',e=>{e.preventDefault();run(e.target,async()=>{const c=$('#cnpjForm [name=cnpj]').value;const r=await rpc('identificarCnpj',c);state.cnpj=r.cnpj;
+    if(r.tipo==='NOVO'){section('register');}else{section('emailStep');$('#emailHelp').textContent=r.tipo==='PENDENTE'?'Seu cadastro aguarda análise. Informe o e-mail utilizado.':'Informe o e-mail cadastrado.';}});});
+  $('#registerForm').addEventListener('submit',e=>{e.preventDefault();run(e.target,async()=>{const d=Object.fromEntries(new FormData(e.target));d.cnpj=state.cnpj;d.seller=new URLSearchParams(location.search).get('seller')||'';
+    const r=await rpc('cadastrarCliente',d);state.email=d.email;section('verify');notice(r.mensagem);});});
+  $('#emailForm').addEventListener('submit',e=>{e.preventDefault();run(e.target,async()=>{state.email=e.target.elements.email.value;const r=await rpc('solicitarCodigo',state.cnpj,state.email);section('verify');notice(r.mensagem);});});
+  $('#verifyForm').addEventListener('submit',e=>{e.preventDefault();run(e.target,async()=>{const r=await rpc('confirmarCodigo',state.cnpj,state.email,e.target.elements.code.value);state.token=r.token;state.profile=r.cliente;sessionStorage.setItem('zap_token',r.token);
+    try{state.cart=new Map(JSON.parse(sessionStorage.getItem('zap_cart_'+state.cnpj)||'[]').map(x=>[x.codigo,x]));}catch(_){state.cart=new Map();}updateBadge();confirmOrShop();});});
+  $('#confirmForm').addEventListener('submit',e=>{e.preventDefault();run(e.target,async()=>{const f=e.target;state.profile=await rpc('confirmarDados',state.token,{telefone:f.elements.telefone.value,responsavel:f.elements.responsavel.value,cargo:f.elements.cargo.value});showShop();});});
+  $('#resend').addEventListener('click',()=>run($('#verifyForm'),async()=>{const r=await rpc('solicitarCodigo',state.cnpj,state.email);notice(r.mensagem);}));
+  document.querySelectorAll('.back').forEach(b=>b.addEventListener('click',()=>section('entry')));
+  $('#nav').addEventListener('click',e=>{const b=e.target.closest('button[data-page]');if(b){state.page=b.dataset.page;state.current=1;state.search='';state.brand='';renderPage();}});
+  $('#logout').addEventListener('click',async()=>{try{await rpc('sair',state.token);}catch(_){}sessionStorage.removeItem('zap_token');state.token='';state.profile=null;state.cart.clear();$('#nav').hidden=true;section('entry');});
+  $('#page').addEventListener('input',e=>{if(e.target.id==='search'){clearTimeout(timer);const v=e.target.value;timer=setTimeout(()=>{state.search=v;state.current=1;renderPage();},400);}});
+  $('#page').addEventListener('change',e=>{if(e.target.id==='brand'){state.brand=e.target.value;state.current=1;renderPage();}if(e.target.id==='stock'){state.stock=e.target.checked;state.current=1;renderPage();}
+    if(e.target.matches('[data-cartqty]')){const x=state.cart.get(e.target.dataset.cartqty);if(x){setQty(x,e.target.value);renderOrder();}}});
+  $('#page').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.pager){state.current+=b.dataset.pager==='next'?1:-1;renderPage();return;}
+    if(b.dataset.add){const p=visible.get(b.dataset.add);const q=b.closest('.card').querySelector('input[data-qty]');if(p)setQty(p,q.value);return;}
+    if(b.dataset.remove){state.cart.delete(b.dataset.remove);state.requestId=null;saveCart();renderOrder();return;}
+    if(b.id==='lookup'){b.disabled=true;try{const r=await rpc('pedidoDinamico',state.token,$('#codes').value);r.encontrados.forEach(x=>visible.set(x.codigo,x));
+      $('#found').innerHTML=`<p>${r.naoEncontrados.length?'Não encontrados: '+esc(r.naoEncontrados.join(', ')):''}</p><div class="grid">${r.encontrados.map(productCard).join('')}</div>`;
+    }catch(err){notice(err.message,true);}finally{b.disabled=false;}return;}
+    if(b.id==='finish'){b.disabled=true;try{state.requestId=state.requestId||crypto.randomUUID();const r=await rpc('concluirPedido',state.token,{requisicaoId:state.requestId,condicao:state.profile.condicao,
+      itens:[...state.cart.values()].map(x=>({codigo:x.codigo,quantidade:x.quantidade})),observacoes:$('#notes').value});
+      state.cart.clear();saveCart();state.requestId=null;state.page='historico';await renderPage();notice('Pedido '+r.pedidoId+' registrado com status '+r.status+'.');
+    }catch(err){notice(err.message||String(err),true);}finally{b.disabled=false;}}
+  });
+  document.querySelector('#register select[name=uf]').insertAdjacentHTML('beforeend','AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ').map(x=>`<option>${x}</option>`).join(''));
+  if(state.token)rpc('minhaConta',state.token).then(p=>{state.profile=p;state.cnpj=p.cnpj;try{state.cart=new Map(JSON.parse(sessionStorage.getItem('zap_cart_'+state.cnpj)||'[]').map(x=>[x.codigo,x]));}catch(_){state.cart=new Map();}updateBadge();confirmOrShop();}).catch(()=>{sessionStorage.removeItem('zap_token');section('entry');});
+})();
+</script>
