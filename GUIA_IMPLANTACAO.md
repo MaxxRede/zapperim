@@ -1,13 +1,13 @@
 # Implantação da base v3 para homologação
 
-O endereço atual `zapperim.pages.dev` continua em produção. Esta instalação usa uma **planilha nova** e um projeto Pages separado. O código reconhece a nova planilha pela propriedade `ZAP_BASE_V3_ID`; nunca usa a propriedade da base anterior.
+O endereço atual `zapperim.pages.dev` continua em produção. Esta instalação usa **uma planilha existente** escolhida explicitamente ou a planilha que contém o Apps Script vinculado; não cria outra planilha. O vínculo é registrado na propriedade `ZAP_BASE_V3_ID`, sem usar a propriedade da base anterior.
 
-## 1. Criar a planilha com o GAS
+## 1. Vincular o GAS à planilha existente
 
-1. Crie um **projeto Apps Script novo** em [script.google.com](https://script.google.com/), na conta que vai ser proprietária da planilha.
-2. Copie o conteúdo completo de [`dist/GAS_INSTALAR_PLANILHA.gs`](dist/GAS_INSTALAR_PLANILHA.gs) para um arquivo `.gs` e o de [`dist/GAS_API_ZAPPERIM.gs`](dist/GAS_API_ZAPPERIM.gs) para outro **no mesmo projeto**. Remova versões anteriores desses arquivos e a `myFunction` padrão. Os arquivos em `gas/` são somente o código modular de origem.
-3. Salve e execute `instalarZapperim` no editor. Autorize a criação da planilha. O Registro de execução traz a URL da nova planilha **ZAPerim - Base v3 - homologação**.
-4. Confira as sete abas: `usuarios`, `acesso`, `pedidos`, `view_bd`, `financeiro`, `stq`, `imagens`. Os cabeçalhos são idênticos aos de [`gas/Schema.gs`](gas/Schema.gs), inclusive `RESONSAVEL`, `CNPJ/CPF`, `PED. MÍNIMO`, `PRECO VND` e `DTPed`. Reexecutar o instalador preserva os dados; um cabeçalho divergente provoca erro antes de sobrescrevê-lo.
+1. Abra a planilha de destino e use **Extensões → Apps Script** para criar um projeto vinculado. Um projeto independente também funciona se o arquivo instalador tiver o ID da planilha preenchido em `ZAP_TARGET_SPREADSHEET_ID`.
+2. Copie o conteúdo completo de [`dist/GAS_INSTALAR_PLANILHA.gs`](dist/GAS_INSTALAR_PLANILHA.gs) para um arquivo `.gs` e o de [`dist/GAS_API_ZAPPERIM.gs`](dist/GAS_API_ZAPPERIM.gs) para outro **no mesmo projeto**. Para um projeto independente, execute `node tools/build-target-gas.mjs ID_DA_PLANILHA GAS_INSTALAR_PLANILHA_ALVO.gs` após `npm run build` e use esse arquivo direcionado no lugar do instalador genérico. Remova versões anteriores desses arquivos e a `myFunction` padrão.
+3. Salve e execute `instalarZapperim` no editor. Autorize o acesso à planilha. O Registro de execução traz a **URL da mesma planilha**. Confira que o ID registrado é o da planilha desejada antes de publicar a API.
+4. Confira as sete abas: `usuarios`, `acesso`, `pedidos`, `view_bd`, `financeiro`, `stq`, `imagens`. Os cabeçalhos são idênticos aos de [`gas/Schema.gs`](gas/Schema.gs), inclusive `RESONSAVEL`, `CNPJ/CPF`, `PED. MÍNIMO`, `PRECO VND` e `DTPed`. O instalador preserva abas já preenchidas; se encontrar um cabeçalho divergente ou dados sem cabeçalho, para antes de associar a API à nova planilha.
 5. Publique como **Aplicativo da Web**, execução como você, acesso para qualquer pessoa, e use a URL `/exec`. Ela deve responder `{"api":3,"revision":"v3-ufs-local-20260929","connected":true,"status":"ready"}`. Se editar o GAS depois de publicar, vá a **Implantar → Gerenciar implantações → Editar → Nova versão → Implantar** para atualizar a mesma URL.
 
 ## 2. Alimentar a base de teste
