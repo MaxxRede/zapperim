@@ -11,6 +11,11 @@ try {
     writeFileSync(file,JSON.stringify(data));
     return spawnSync(process.execPath,['tools/pages-deployment-url.mjs',file],{encoding:'utf8'});
   };
+  const cli={Environment:'Production',Deployment:'https://5db7d369.zapperim-perim-5f05ee743d84a17b.pages.dev',Status:'2 minutes ago'};
+  assert.equal(run([cli]).status,0);
+  assert.equal(run([{...cli,Status:'Failure'}]).status,2);
+  assert.equal(run([{...cli,Status:'Active'}]).status,2);
+  assert.equal(run([{...cli,Environment:'Preview'}]).status,2);
   const production={environment:'production',url:'https://abcd1234.zapperim-perim.pages.dev',aliases:['zapperim-perim.pages.dev'],latest_stage:{status:'success'}};
   const ready=run([production]);
   assert.equal(ready.status,0,ready.stderr);
