@@ -1,27 +1,23 @@
 /** ZAPerim — API do Web App para Cloudflare Pages. Requer GAS_INSTALAR_PLANILHA.gs no mesmo projeto. */
 
-/** Contrato compartilhado: ambos os arquivos GAS gerados podem ser colados no mesmo projeto. */
+/** Contrato v3. Nomes e ordem das colunas fornecidos pelo usuário. */
 var ZAP_SCHEMA = Object.freeze({
-  CONFIG: ['CHAVE','VALOR','DESCRICAO'],
-  REGRAS_UF: ['UF','ATIVO','PEDIDO_MINIMO_CENTAVOS','LIMITE_NOVO_CENTAVOS','CONDICOES','ATUALIZADO_EM'],
-  CLIENTES: ['CNPJ','COD_CLIENTE','RAZAO_SOCIAL','EMAIL','TELEFONE','ENDERECO','CIDADE','UF','CEP','COMPLEMENTO','RESPONSAVEL','CARGO','SELLER_ID','TABELA','CONDICAO','STATUS','ATUALIZADO_EM'],
-  CADASTROS_PENDENTES: ['ID','CRIADO_EM','CNPJ','RAZAO_SOCIAL','EMAIL','TELEFONE','ENDERECO','CIDADE','UF','CEP','COMPLEMENTO','RESPONSAVEL','CARGO','SELLER_ID','STATUS'],
-  PRODUTOS: ['CODIGO','EAN','DESCRICAO','MARCA','IMAGEM_URL','ATIVO','ATUALIZADO_EM'],
-  PRECOS: ['CODIGO','TABELA','PRECO_CENTAVOS','PROMOCAO','ATUALIZADO_EM'],
-  ESTOQUE: ['CODIGO','QTDE_DISPONIVEL','ATUALIZADO_EM'],
-  RANKING: ['CODIGO','QTDE_VENDIDA','PERIODO','ATUALIZADO_EM'],
-  PEDIDOS: ['PEDIDO_ID','REQUISICAO_ID','CRIADO_EM','CNPJ','RAZAO_SOCIAL','EMAIL','UF','SELLER_ID','TABELA','CONDICAO','STATUS','TOTAL_CENTAVOS','OBSERVACOES','PDF_ID','XLSX_ID','EMAIL_STATUS','ERRO'],
-  PEDIDO_ITENS: ['PEDIDO_ID','CODIGO','DESCRICAO','QTDE','PRECO_UNIT_CENTAVOS','TOTAL_CENTAVOS','ESTOQUE_NA_COMPRA'],
-  LOG_IMPORTACAO: ['EXECUCAO_ID','INICIO','FIM','FONTE','ABA','REGISTROS','STATUS','ERRO']
+  usuarios: ['RESPONSAVEL','LOGIN','SENHA','UNIDADE','TIPO','EQUIPE','SALDO'],
+  acesso: ['ST','CNPJ','RESPONSAVEL','TABELA','OBSERVACOES','STATUS'],
+  pedidos: ['CNPJ/CPF','RESONSAVEL','ATENDIMENTO','TABELA','CODIGO','PRODUTO','QTDE','VALOR','DESC_PROD','BONIFICADO','PGTO','CONDICAO','DESC_PEDIDO','MAT APOIO','OBSERVACOES','ZERADO','DTPed'],
+  view_bd: ['CNPJ/CPF','MEDIANA','SUG. VISITA','PED. MÍNIMO','CLIENTE','CIDADE','SALDO','CONDIÇÃO','PONTUALIDADE','OBSERVAÇÃO','ENDEREÇO','TABELA','CRM','COD_CLI','TELEFONE','E-MAIL'],
+  financeiro: ['CNPJ','CREDITO','SALDO','TOT_COMPRAS','MED_COMPRA','NUMMESES','MEDIA_ATRASO','DATA_ULT_COMPRA','DESC_PRAZO','PERC_PONTUALIDADE','MOTIVO_BLOQUEIO','CANAL','RCA','CLIENTE'],
+  stq: ['EAN','COD','DESCRICAO','TABELA','ESTOQUE','PRECO VND','SALDO_STQ','MARCA','PACKING'],
+  imagens: ['Nome do Arquivo','URL','Produto']
 });
 var ZAP_UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
 function doGet() {
-  const installed=!!PropertiesService.getScriptProperties().getProperty('ZAP_SPREADSHEET_ID');
-  return json_({api:2,connected:installed,status:installed?'ready':'not_installed'});
+  const installed=!!PropertiesService.getScriptProperties().getProperty('ZAP_BASE_V3_ID');
+  return json_({api:3,connected:installed,status:installed?'ready':'not_installed'});
 }
 function ss_() {
-  const id=PropertiesService.getScriptProperties().getProperty('ZAP_SPREADSHEET_ID');
+  const id=PropertiesService.getScriptProperties().getProperty('ZAP_BASE_V3_ID');
   if (!id) throw new Error('Execute instalarZapperim() antes de publicar.');
   return SpreadsheetApp.openById(id);
 }
@@ -33,7 +29,7 @@ function records_(name) {
 }
 function append_(name,row) { tab_(name).appendRow(ZAP_SCHEMA[name].map(k=>row[k] == null ? '' : safeCell_(row[k]))); }
 function safeCell_(value) { return typeof value==='string' && /^[=+\-@]/.test(value) ? "'"+value : value; }
-function config_(key) { const r=records_('CONFIG').find(x=>x.CHAVE===key); return r ? String(r.VALOR).trim() : ''; }
+function config_(key) { return String(PropertiesService.getScriptProperties().getProperty('ZAP_'+key+'_V3')||'').trim(); }
 function now_() { return new Date().toISOString(); }
 function digits_(s) { return String(s||'').replace(/\D/g,''); }
 function clean_(value,max) { return String(value||'').trim().slice(0,max); }
@@ -44,62 +40,90 @@ function uuid_() { return Utilities.getUuid(); }
 function requireInt_(v,min,max,label) { const x=Number(v); if(!Number.isSafeInteger(x)||x<min||x>max) throw new Error(label+' inválido.'); return x; }
 function limited_(text,max,label) { const s=clean_(text,max+1); if(s.length>max) throw new Error(label+' excede '+max+' caracteres.'); return s; }
 function amount_(v,label) { return requireInt_(v,0,100000000000,label); }
-function enabledUf_(uf) {
-  const rule=records_('REGRAS_UF').find(r=>r.UF===uf);
-  if(rule) return String(rule.ATIVO).toUpperCase()==='SIM';
-  const all=config_('UFS_ATENDIDAS'); return all==='*' || all.split(',').map(s=>s.trim().toUpperCase()).includes(uf);
+function moneyCents_(v,label) {
+  if(typeof v==='number' && Number.isFinite(v))return amount_(Math.round(v*100),label);
+  let s=String(v==null?'':v).replace(/R\$|\s/g,'');
+  if(!s)throw new Error(label+' não configurado.');
+  if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');
+  if(!/^\d+(\.\d{1,2})?$/.test(s))throw new Error(label+' inválido: '+v);
+  return amount_(Math.round(Number(s)*100),label);
 }
-function rule_(uf,key,globalKey) {
-  const local=records_('REGRAS_UF').find(r=>r.UF===uf);
-  const value=local&&local[key]!=='' ? local[key] : config_(globalKey);
-  if(value==='') throw new Error('Regra '+globalKey+' ainda não configurada.');
-  return amount_(value,globalKey);
+function ufEndereco_(text) {
+  const s=String(text||'').toUpperCase().trim().replace(/(?:[,\s]+)?\d{5}-?\d{3}\s*$/,'').replace(/[\s,;]+$/,'');
+  const match=s.match(/(?:\bUF\s*[:=-]\s*|[-,/\s])([A-Z]{2})\s*$/);
+  if(!match || !ZAP_UFS.includes(match[1]))throw new Error('UF não identificada no final do ENDEREÇO do cliente. Informe a sigla (ex.: AVARÉ - SP).');
+  return match[1];
+}
+function enabledUf_(uf) {
+  const all=config_('UFS_ATENDIDAS'); return !all||all==='*'||all.split(',').map(s=>s.trim().toUpperCase()).includes(uf);
+}
+function rule_(uf,key,globalKey,profile) {
+  if(key==='PEDIDO_MINIMO_CENTAVOS') {
+    if(profile && profile.tipo==='EXISTENTE')return moneyCents_(profile.minimo,'PED. MÍNIMO');
+  }
+  const value=config_(globalKey);
+  if(value==='')throw new Error('Regra '+globalKey+' ainda não configurada nas propriedades do script.');
+  return amount_(Number(value),globalKey);
 }
 function publicError_(e) { throw new Error(e && e.message ? e.message : 'Não foi possível concluir a operação.'); }
 
 const AUTH_TTL=21600;
+function accessData_(row) {
+  try {const value=JSON.parse(String(row.OBSERVACOES||'')); return value && typeof value==='object' ? value : {};}
+  catch(_){return {};}
+}
+function accessFor_(cnpj) {
+  return records_('acesso').filter(r=>digits_(r.CNPJ)===cnpj).reverse();
+}
+function clientFor_(cnpj) {
+  return records_('view_bd').find(r=>digits_(r['CNPJ/CPF'])===cnpj);
+}
+function pendingFor_(cnpj) {
+  return accessFor_(cnpj).find(r=>accessData_(r).tipo==='PENDENTE');
+}
 function identificarCnpj(cnpj) {
-  const id=cnpj_(cnpj), client=records_('CLIENTES').find(r=>digits_(r.CNPJ)===id && String(r.STATUS).toUpperCase()==='ATIVO');
-  const pending=records_('CADASTROS_PENDENTES').find(r=>digits_(r.CNPJ)===id && String(r.STATUS).toUpperCase()==='PENDENTE');
-  return {tipo:client?'EXISTENTE':pending?'PENDENTE':'NOVO',cnpj:id};
+  const id=cnpj_(cnpj);
+  return {tipo:clientFor_(id)?'EXISTENTE':pendingFor_(id)?'PENDENTE':'NOVO',cnpj:id};
+}
+function saveAccess_(cnpj,responsavel,tabela,data) {
+  append_('acesso',{ST:'ZAP_PERIM',CNPJ:cnpj,RESPONSAVEL:responsavel,TABELA:tabela,
+    OBSERVACOES:JSON.stringify(data),STATUS:new Date()});
 }
 function cadastrarCliente(data) {
   const cnpj=cnpj_(data.cnpj), uf=uf_(data.uf), email=email_(data.email);
-  if(!enabledUf_(uf)) throw new Error('Ainda não atendemos esta UF.');
-  const req={CNPJ:cnpj,RAZAO_SOCIAL:limited_(data.nome,140,'Razão social'),EMAIL:email,
-    TELEFONE:digits_(data.telefone),ENDERECO:limited_(data.endereco,180,'Endereço'),
-    CIDADE:limited_(data.cidade,80,'Cidade'),UF:uf,CEP:digits_(data.cep),
-    COMPLEMENTO:limited_(data.complemento,100,'Complemento'),RESPONSAVEL:limited_(data.responsavel,100,'Responsável'),
-    CARGO:limited_(data.cargo,80,'Cargo'),SELLER_ID:limited_(data.seller,30,'Vendedor')};
-  if(!req.RAZAO_SOCIAL || !req.ENDERECO || !req.CIDADE || !req.RESPONSAVEL || !req.CARGO || !/^\d{10,11}$/.test(req.TELEFONE) || !/^\d{8}$/.test(req.CEP))
+  if(!enabledUf_(uf))throw new Error('Ainda não atendemos esta UF.');
+  const req={cnpj,nome:limited_(data.nome,140,'Razão social'),email,
+    telefone:digits_(data.telefone),endereco:limited_(data.endereco,180,'Endereço'),
+    cidade:limited_(data.cidade,80,'Cidade'),uf,cep:digits_(data.cep),
+    complemento:limited_(data.complemento,100,'Complemento'),responsavel:limited_(data.responsavel,100,'Responsável'),
+    cargo:limited_(data.cargo,80,'Cargo'),seller:limited_(data.seller,30,'Vendedor'),tipo:'PENDENTE'};
+  if(!req.nome||!req.endereco||!req.cidade||!req.responsavel||!req.cargo||!/^[0-9]{10,11}$/.test(req.telefone)||!/^[0-9]{8}$/.test(req.cep))
     throw new Error('Preencha os dados obrigatórios; telefone com DDD e CEP com 8 dígitos.');
-  const lock=LockService.getScriptLock(); lock.waitLock(30000);
+  const lock=LockService.getScriptLock();lock.waitLock(30000);
   try {
-    if(records_('CLIENTES').some(r=>digits_(r.CNPJ)===cnpj)) throw new Error('Este CNPJ já está cadastrado. Acesse com o e-mail registrado.');
-    const existing=records_('CADASTROS_PENDENTES').find(r=>digits_(r.CNPJ)===cnpj && r.STATUS==='PENDENTE');
-    if(existing) throw new Error('Cadastro já recebido. Use o e-mail informado para acessar ou solicite revisão do cadastro.');
-    append_('CADASTROS_PENDENTES',Object.assign({ID:uuid_(),CRIADO_EM:now_(),STATUS:'PENDENTE'},req));
-  } finally { lock.releaseLock(); }
+    if(clientFor_(cnpj))throw new Error('Este CNPJ já consta da base. Acesse com o e-mail registrado.');
+    if(pendingFor_(cnpj))throw new Error('Cadastro já recebido. Use o e-mail informado ou solicite revisão.');
+    saveAccess_(cnpj,req.responsavel,config_('TABELA_NOVO')||'NOVO',req);
+  }finally{lock.releaseLock();}
   solicitarCodigo(cnpj,email);
   return {mensagem:'Cadastro recebido. Enviamos um código ao e-mail informado; a aprovação comercial ainda está pendente.'};
 }
 function authRecord_(cnpj,email) {
-  const client=records_('CLIENTES').find(r=>digits_(r.CNPJ)===cnpj && String(r.EMAIL).toLowerCase()===email && String(r.STATUS).toUpperCase()==='ATIVO');
-  if(client) return {row:client,tipo:'EXISTENTE'};
-  const pending=records_('CADASTROS_PENDENTES').find(r=>digits_(r.CNPJ)===cnpj && String(r.EMAIL).toLowerCase()===email && r.STATUS==='PENDENTE');
-  return pending?{row:pending,tipo:'PENDENTE'}:null;
+  const client=clientFor_(cnpj), accesses=accessFor_(cnpj), latest=accesses[0];
+  if(client && String(client['E-MAIL']).trim().toLowerCase()===email)
+    return {row:client,access:latest,tipo:'EXISTENTE'};
+  if(!client){const pending=accesses.find(r=>{const d=accessData_(r);return d.tipo==='PENDENTE' && d.email===email;});
+    if(pending)return {row:pending,access:pending,tipo:'PENDENTE'};}
+  return null;
 }
 function solicitarCodigo(cnpj,email) {
-  const id=cnpj_(cnpj), mail=email_(email), cache=CacheService.getScriptCache();
-  const throttle='rate:'+id;
-  if(cache.get(throttle)) throw new Error('Aguarde um minuto antes de solicitar outro código.');
+  const id=cnpj_(cnpj),mail=email_(email),cache=CacheService.getScriptCache();
+  const throttle='rate:'+id;if(cache.get(throttle))throw new Error('Aguarde um minuto antes de solicitar outro código.');
   const found=authRecord_(id,mail);
-  // Mesma resposta para e-mail conhecido ou desconhecido; evita expor o contato do cliente.
-  if(found) {
+  if(found){
     const code=String(100000+(parseInt(Utilities.getUuid().replace(/-/g,'').slice(0,12),16)%900000));
-    const key='otp:'+id+':'+mail;
     const hash=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,code+':'+id+':'+mail).map(n=>('0'+(n&255).toString(16)).slice(-2)).join('');
-    cache.put(key,JSON.stringify({hash:hash,attempts:0}),600);
+    cache.put('otp:'+id+':'+mail,JSON.stringify({hash,attempts:0}),600);
     MailApp.sendEmail({to:mail,subject:'Código de acesso ZAPerim',body:'Seu código é '+code+'. Ele vale por 10 minutos. Não compartilhe este código.'});
   }
   cache.put(throttle,'1',60);
@@ -107,74 +131,98 @@ function solicitarCodigo(cnpj,email) {
 }
 function confirmarCodigo(cnpj,email,code) {
   const id=cnpj_(cnpj),mail=email_(email),key='otp:'+id+':'+mail,cache=CacheService.getScriptCache();
-  const entry=cache.get(key); if(!entry) throw new Error('Código expirado ou inválido. Solicite outro.');
+  const entry=cache.get(key);if(!entry)throw new Error('Código expirado ou inválido. Solicite outro.');
   const data=JSON.parse(entry);
   if(data.attempts>=5){cache.remove(key);throw new Error('Muitas tentativas. Solicite novo código.');}
   const hash=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,clean_(code,6)+':'+id+':'+mail).map(n=>('0'+(n&255).toString(16)).slice(-2)).join('');
-  if(!/^\d{6}$/.test(String(code)) || hash!==data.hash){data.attempts++;cache.put(key,JSON.stringify(data),600);throw new Error('Código inválido.');}
-  const found=authRecord_(id,mail); if(!found) throw new Error('Cadastro indisponível.');
+  if(!/^\d{6}$/.test(String(code))||hash!==data.hash){data.attempts++;cache.put(key,JSON.stringify(data),600);throw new Error('Código inválido.');}
+  const found=authRecord_(id,mail);if(!found)throw new Error('Cadastro indisponível.');
   cache.remove(key);
-  const token=uuid_()+uuid_();
-  cache.put('session:'+token,JSON.stringify({cnpj:id,email:mail}),AUTH_TTL);
-  return {token:token,cliente:profile_(found)};
+  const token=uuid_()+uuid_();cache.put('session:'+token,JSON.stringify({cnpj:id,email:mail}),AUTH_TTL);
+  const profile=profile_(found);
+  // Histórico da entrada; preserva as informações completas em OBSERVACOES.
+  const notes=found.tipo==='PENDENTE'?accessData_(found.row):Object.assign({},accessData_(found.access||{}),
+    {tipo:'EXISTENTE',cnpj:id,nome:profile.nome,email:mail,telefone:profile.telefone,
+      endereco:String(found.row['ENDEREÇO']||''),cidade:String(found.row.CIDADE||''),uf:profile.uf,
+      responsavel:profile.responsavel,cargo:profile.cargo,tabela:profile.tabela,condicao:profile.condicao});
+  saveAccess_(id,profile.responsavel,profile.tabela,notes);
+  return {token,cliente:profile};
 }
 function session_(token) {
-  if(!/^[a-f0-9-]{72}$/.test(String(token||''))) throw new Error('Acesso expirado. Entre novamente.');
-  const raw=CacheService.getScriptCache().get('session:'+token);
-  if(!raw) throw new Error('Acesso expirado. Entre novamente.');
-  const user=JSON.parse(raw), found=authRecord_(user.cnpj,user.email);
-  if(!found) throw new Error('Cadastro indisponível.');
+  if(!/^[a-f0-9-]{72}$/.test(String(token||'')))throw new Error('Acesso expirado. Entre novamente.');
+  const raw=CacheService.getScriptCache().get('session:'+token);if(!raw)throw new Error('Acesso expirado. Entre novamente.');
+  const user=JSON.parse(raw),found=authRecord_(user.cnpj,user.email);
+  if(!found)throw new Error('Cadastro indisponível.');
   return Object.assign(user,found);
 }
 function profile_(found) {
-  const x=found.row;
-  return {cnpj:digits_(x.CNPJ),nome:String(x.RAZAO_SOCIAL),uf:String(x.UF),responsavel:String(x.RESPONSAVEL),
-    email:String(x.EMAIL),telefone:String(x.TELEFONE),cargo:String(x.CARGO),
-    tipo:found.tipo,tabela:found.tipo==='EXISTENTE'?String(x.TABELA):config_('TABELA_NOVO'),
-    condicao:found.tipo==='EXISTENTE'?String(x.CONDICAO):'A VISTA'};
+  const row=found.row, notes=accessData_(found.access||row);
+  if(found.tipo==='PENDENTE')return {cnpj:digits_(row.CNPJ),nome:String(notes.nome||''),uf:String(notes.uf||''),
+    responsavel:String(notes.responsavel||row.RESPONSAVEL||''),email:String(notes.email||''),telefone:String(notes.telefone||''),
+    cargo:String(notes.cargo||''),tipo:'PENDENTE',tabela:String(row.TABELA||'NOVO'),condicao:'A VISTA',minimo:''};
+  const uf=ufEndereco_(row['ENDEREÇO']);
+  return {cnpj:digits_(row['CNPJ/CPF']),nome:String(row.CLIENTE||''),uf,
+    responsavel:String(notes.responsavel||found.access&&found.access.RESPONSAVEL||''),email:String(row['E-MAIL']||''),
+    telefone:String(notes.telefone||row.TELEFONE||''),cargo:String(notes.cargo||''),
+    tipo:'EXISTENTE',tabela:String(found.access&&found.access.TABELA||row.TABELA||''),
+    condicao:String(row['CONDIÇÃO']||'A VISTA'),minimo:row['PED. MÍNIMO']};
 }
-function minhaConta(token) { return profile_(session_(token)); }
+function minhaConta(token){return profile_(session_(token));}
 function confirmarDados(token,data) {
   const user=session_(token),responsavel=limited_(data.responsavel,100,'Responsável'),cargo=limited_(data.cargo,80,'Cargo'),telefone=digits_(data.telefone);
-  if(!responsavel||!cargo||!/^\d{10,11}$/.test(telefone)) throw new Error('Informe responsável, cargo e telefone com DDD.');
-  if(user.tipo!=='EXISTENTE') return profile_(user);
+  if(!responsavel||!cargo||!/^[0-9]{10,11}$/.test(telefone))throw new Error('Informe responsável, cargo e telefone com DDD.');
   const lock=LockService.getScriptLock();lock.waitLock(30000);
   try {
-    const current=session_(token),s=tab_('CLIENTES');
-    ['RESPONSAVEL','CARGO','TELEFONE'].forEach((key,i)=>s.getRange(current.row._ROW,ZAP_SCHEMA.CLIENTES.indexOf(key)+1).setValue([responsavel,cargo,telefone][i]));
+    const current=session_(token),profile=profile_(current),notes=Object.assign({},accessData_(current.access||{}),
+      {tipo:current.tipo,cnpj:user.cnpj,nome:profile.nome,email:user.email,responsavel,cargo,telefone,
+        endereco:current.tipo==='EXISTENTE'?String(current.row['ENDEREÇO']||''):accessData_(current.access||{}).endereco,
+        cidade:current.tipo==='EXISTENTE'?String(current.row.CIDADE||''):accessData_(current.access||{}).cidade,
+        uf:profile.uf,tabela:profile.tabela,condicao:profile.condicao});
+    saveAccess_(user.cnpj,responsavel,profile.tabela,notes);
     return profile_(session_(token));
-  } finally {lock.releaseLock();}
+  }finally{lock.releaseLock();}
 }
-function sair(token) { CacheService.getScriptCache().remove('session:'+String(token)); return true; }
+function sair(token){CacheService.getScriptCache().remove('session:'+String(token));return true;}
 
 function catalogData_(profile) {
-  const products=records_('PRODUTOS').filter(x=>String(x.ATIVO).toUpperCase()==='SIM');
-  const prices=new Map(records_('PRECOS').filter(x=>String(x.TABELA)===profile.tabela).map(x=>[String(x.CODIGO),x]));
-  const stock=new Map(records_('ESTOQUE').map(x=>[String(x.CODIGO),x]));
-  const rank=new Map(records_('RANKING').map(x=>[String(x.CODIGO),x]));
-  return products.filter(x=>prices.has(String(x.CODIGO))).map(x=>{
-    const cod=String(x.CODIGO), p=prices.get(cod), e=stock.get(cod), r=rank.get(cod);
-    return {codigo:cod,ean:String(x.EAN||''),descricao:String(x.DESCRICAO||''),marca:String(x.MARCA||''),
-      imagem:String(x.IMAGEM_URL||''),precoCentavos:amount_(p.PRECO_CENTAVOS,'Preço'),
-      estoque:Math.max(0,Number(e&&e.QTDE_DISPONIVEL)||0),vendidos:Math.max(0,Number(r&&r.QTDE_VENDIDA)||0),
-      promocao:String(p.PROMOCAO).toUpperCase()==='SIM'};
+  const images=records_('imagens'), byProduct=new Map();
+  images.forEach(row=>{
+    const key=String(row.Produto||'').trim().toUpperCase();
+    if(key && !byProduct.has(key) && /^https:\/\//i.test(String(row.URL||'')))byProduct.set(key,String(row.URL));
   });
+  const sold=new Map();
+  records_('pedidos').forEach(row=>{const code=String(row.CODIGO||'').trim();
+    if(code)sold.set(code,(sold.get(code)||0)+(Number(row.QTDE)||0));});
+  const chosen=new Map();
+  records_('stq').forEach(row=>{
+    const code=String(row.COD||'').trim(),table=String(row.TABELA||'').trim();
+    if(!code||table.toUpperCase()!==profile.tabela.toUpperCase())return;
+    if(chosen.has(code))throw new Error('Código duplicado na tabela '+table+': '+code);
+    const price=moneyCents_(row['PRECO VND'],'PRECO VND de '+code);
+    const stock=Math.max(0,Math.trunc(Number(row.SALDO_STQ!==''?row.SALDO_STQ:row.ESTOQUE)||0));
+    const desc=String(row.DESCRICAO||'');
+    chosen.set(code,{codigo:code,ean:String(row.EAN||''),descricao:desc,marca:String(row.MARCA||''),
+      imagem:byProduct.get(code.toUpperCase())||byProduct.get(desc.trim().toUpperCase())||'',
+      precoCentavos:price,estoque:stock,vendidos:Math.max(0,sold.get(code)||0),promocao:false,
+      packing:String(row.PACKING||'')});
+  });
+  return [...chosen.values()];
 }
 function listarCatalogo(token,opts) {
-  const profile=profile_(session_(token)), o=opts||{};
+  const profile=profile_(session_(token)),o=opts||{};
   const pagina=requireInt_(o.pagina||1,1,100000,'Página');
-  const busca=clean_(o.busca,100).toLowerCase(), marca=clean_(o.marca,80).toLowerCase();
-  const somenteEstoque=Boolean(o.somenteEstoque), favoritos=Boolean(o.favoritos);
-  let items=catalogData_(profile).filter(x=>(!busca || (x.codigo+' '+x.ean+' '+x.descricao+' '+x.marca).toLowerCase().includes(busca)) &&
-    (!marca || x.marca.toLowerCase()===marca) && (!somenteEstoque || x.estoque>0) && (!favoritos || !x.promocao));
-  if(favoritos) items.sort((a,b)=>b.vendidos-a.vendidos || a.codigo.localeCompare(b.codigo));
+  const busca=clean_(o.busca,100).toLowerCase(),marca=clean_(o.marca,80).toLowerCase();
+  const somenteEstoque=Boolean(o.somenteEstoque),favoritos=Boolean(o.favoritos);
+  let items=catalogData_(profile).filter(x=>(!busca||(x.codigo+' '+x.ean+' '+x.descricao+' '+x.marca).toLowerCase().includes(busca))&&
+    (!marca||x.marca.toLowerCase()===marca)&&(!somenteEstoque||x.estoque>0));
+  if(favoritos)items.sort((a,b)=>b.vendidos-a.vendidos||a.codigo.localeCompare(b.codigo));
   else items.sort((a,b)=>a.descricao.localeCompare(b.descricao,'pt-BR'));
-  if(favoritos) items=items.slice(0,60);
+  if(favoritos)items=items.slice(0,60);
   const pageSize=21;
-  return {itens:items.slice((pagina-1)*pageSize,pagina*pageSize),pagina:pagina,total:items.length,
+  return {itens:items.slice((pagina-1)*pageSize,pagina*pageSize),pagina,total:items.length,
     paginas:Math.ceil(items.length/pageSize),marcas:[...new Set(items.map(x=>x.marca).filter(Boolean))].sort()};
 }
-function topDez(token) { return catalogData_(profile_(session_(token))).filter(x=>!x.promocao).sort((a,b)=>b.vendidos-a.vendidos).slice(0,10); }
+function topDez(token){return catalogData_(profile_(session_(token))).sort((a,b)=>b.vendidos-a.vendidos).slice(0,10);}
 function pedidoDinamico(token,input) {
   const codes=[...new Set(clean_(input,1200).split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean))].slice(0,60);
   const catalog=catalogData_(profile_(session_(token)));
@@ -182,18 +230,19 @@ function pedidoDinamico(token,input) {
   return {encontrados:codes.map(c=>byCode.get(c.toUpperCase())).filter(Boolean),naoEncontrados:codes.filter(c=>!byCode.has(c.toUpperCase()))};
 }
 
+function orderMarker_(id){return '[ZAP:'+id+']';}
 function concluirPedido(token,payload) {
-  const user=session_(token), profile=profile_(user), data=payload||{};
-  if(!enabledUf_(profile.uf)) throw new Error('Atendimento indisponível para esta UF.');
-  const min=rule_(profile.uf,'PEDIDO_MINIMO_CENTAVOS','PEDIDO_MINIMO_CENTAVOS');
-  const limit=profile.tipo==='PENDENTE' ? rule_(profile.uf,'LIMITE_NOVO_CENTAVOS','LIMITE_NOVO_CENTAVOS') : null;
+  const user=session_(token),profile=profile_(user),data=payload||{};
+  if(!enabledUf_(profile.uf))throw new Error('Atendimento indisponível para esta UF.');
+  const min=rule_(profile.uf,'PEDIDO_MINIMO_CENTAVOS','PEDIDO_MINIMO_CENTAVOS',profile);
+  const limit=profile.tipo==='PENDENTE'?rule_(profile.uf,'LIMITE_NOVO_CENTAVOS','LIMITE_NOVO_CENTAVOS',profile):null;
   const requestId=clean_(data.requisicaoId,80);
-  if(!/^[a-zA-Z0-9-]{20,80}$/.test(requestId)) throw new Error('Identificador do pedido inválido.');
+  if(!/^[a-zA-Z0-9-]{20,80}$/.test(requestId))throw new Error('Identificador do pedido inválido.');
   const quantities=new Map();
-  if(!Array.isArray(data.itens)||!data.itens.length||data.itens.length>100) throw new Error('Escolha entre 1 e 100 produtos.');
+  if(!Array.isArray(data.itens)||!data.itens.length||data.itens.length>100)throw new Error('Escolha entre 1 e 100 produtos.');
   data.itens.forEach(item=>{
-    const cod=clean_(item.codigo,60), qty=requireInt_(item.quantidade,1,10000,'Quantidade');
-    if(!cod||quantities.has(cod)) throw new Error('Produto duplicado ou inválido.');
+    const cod=clean_(item.codigo,60),qty=requireInt_(item.quantidade,1,10000,'Quantidade');
+    if(!cod||quantities.has(cod))throw new Error('Produto duplicado ou inválido.');
     quantities.set(cod,qty);
   });
   const payment=clean_(data.condicao,60).toUpperCase();
@@ -201,46 +250,46 @@ function concluirPedido(token,payload) {
     throw new Error('Condição de pagamento não autorizada para este cadastro.');
   const lock=LockService.getScriptLock();lock.waitLock(30000);
   try {
-    const existing=records_('PEDIDOS').find(x=>String(x.REQUISICAO_ID)===requestId);
-    if(existing) {
-      if(digits_(existing.CNPJ)!==user.cnpj) throw new Error('Identificador já utilizado.');
-      return {pedidoId:String(existing.PEDIDO_ID),totalCentavos:Number(existing.TOTAL_CENTAVOS),status:String(existing.STATUS),repetido:true};
+    const existing=records_('pedidos').filter(x=>String(x.OBSERVACOES||'').startsWith(orderMarker_(requestId)));
+    if(existing.length){
+      if(digits_(existing[0]['CNPJ/CPF'])!==user.cnpj)throw new Error('Identificador já utilizado.');
+      const total=existing.reduce((sum,x)=>sum+Math.round(Number(x.VALOR)*100)*Number(x.QTDE),0);
+      return {pedidoId:requestId,totalCentavos:total,status:'TESTE',repetido:true};
     }
     const catalog=new Map(catalogData_(profile).map(x=>[x.codigo,x]));
     let total=0;const rows=[];
     quantities.forEach((qty,code)=>{
-      const p=catalog.get(code); if(!p) throw new Error('Código '+code+' não disponível na tabela do cliente.');
-      if(p.estoque<qty) throw new Error('Estoque insuficiente para '+code+'; disponível: '+p.estoque+'.');
+      const p=catalog.get(code);if(!p)throw new Error('Código '+code+' não disponível na tabela do cliente.');
+      if(p.estoque<qty)throw new Error('Estoque insuficiente para '+code+'; disponível: '+p.estoque+'.');
       const line=p.precoCentavos*qty;
-      if(!Number.isSafeInteger(line)) throw new Error('Valor inválido para '+code+'.');
-      total+=line;
-      rows.push({CODIGO:code,DESCRICAO:p.descricao,QTDE:qty,PRECO_UNIT_CENTAVOS:p.precoCentavos,TOTAL_CENTAVOS:line,ESTOQUE_NA_COMPRA:p.estoque});
+      if(!Number.isSafeInteger(line))throw new Error('Valor inválido para '+code+'.');
+      total+=line;rows.push({codigo:code,produto:p.descricao,quantidade:qty,valor:p.precoCentavos/100});
     });
-    if(!Number.isSafeInteger(total)||total<min) throw new Error('Pedido mínimo: '+(min/100).toFixed(2)+'; subtotal: '+(total/100).toFixed(2)+'.');
-    if(limit!==null && total>limit) throw new Error('Limite para novo cliente: '+(limit/100).toFixed(2)+'.');
-    const id=uuid_(), status=config_('AMBIENTE')==='PRODUCAO'?'PENDENTE':'TESTE';
-    const sheet=tab_('PEDIDO_ITENS');
-    const itemRows=rows.map(x=>ZAP_SCHEMA.PEDIDO_ITENS.map(k=>k==='PEDIDO_ID'?id:(x[k] == null?'':safeCell_(x[k]))));
-    const firstRow=sheet.getLastRow()+1;
-    try {
-      sheet.getRange(firstRow,1,itemRows.length,ZAP_SCHEMA.PEDIDO_ITENS.length).setValues(itemRows);
-      append_('PEDIDOS',{PEDIDO_ID:id,REQUISICAO_ID:requestId,CRIADO_EM:now_(),CNPJ:user.cnpj,
-        RAZAO_SOCIAL:profile.nome,EMAIL:user.email,UF:profile.uf,SELLER_ID:user.row.SELLER_ID,
-        TABELA:profile.tabela,CONDICAO:payment,STATUS:status,TOTAL_CENTAVOS:total,
-        OBSERVACOES:limited_(data.observacoes,1000,'Observações'),EMAIL_STATUS:'NAO_ENVIADO'});
-    } catch(e) {
-      if(!records_('PEDIDOS').some(x=>String(x.PEDIDO_ID)===id)) sheet.getRange(firstRow,1,itemRows.length,ZAP_SCHEMA.PEDIDO_ITENS.length).clearContent();
-      throw e;
-    }
-    return {pedidoId:id,totalCentavos:total,status:status,repetido:false};
-  } finally {lock.releaseLock();}
+    if(!Number.isSafeInteger(total)||total<min)throw new Error('Pedido mínimo: '+(min/100).toFixed(2)+'; subtotal: '+(total/100).toFixed(2)+'.');
+    if(limit!==null&&total>limit)throw new Error('Limite para novo cliente: '+(limit/100).toFixed(2)+'.');
+    const obs=limited_(data.observacoes,900,'Observações');
+    const stamp=new Date(),marker=orderMarker_(requestId);
+    const values=rows.map(row=>ZAP_SCHEMA.pedidos.map(key=>{
+      const fields={'CNPJ/CPF':user.cnpj,RESONSAVEL:profile.responsavel,ATENDIMENTO:user.row.RCA||'CLIENTE',
+        TABELA:profile.tabela,CODIGO:row.codigo,PRODUTO:row.produto,QTDE:row.quantidade,VALOR:row.valor,
+        DESC_PROD:0,BONIFICADO:'NAO',PGTO:payment,CONDICAO:payment,DESC_PEDIDO:0,'MAT APOIO':'',
+        OBSERVACOES:marker+(obs?' '+obs:''),ZERADO:'NAO',DTPed:stamp};
+      return safeCell_(fields[key]);
+    }));
+    const sheet=tab_('pedidos'),first=sheet.getLastRow()+1;
+    sheet.getRange(first,1,values.length,ZAP_SCHEMA.pedidos.length).setValues(values);
+    return {pedidoId:requestId,totalCentavos:total,status:'TESTE',repetido:false};
+  }finally{lock.releaseLock();}
 }
 function meusPedidos(token) {
-  const user=session_(token);
-  return records_('PEDIDOS').filter(x=>digits_(x.CNPJ)===user.cnpj).reverse().slice(0,30).map(x=>({
-    id:String(x.PEDIDO_ID),criadoEm:String(x.CRIADO_EM),status:String(x.STATUS),
-    totalCentavos:Number(x.TOTAL_CENTAVOS),condicao:String(x.CONDICAO)
-  }));
+  const user=session_(token),groups=new Map();
+  records_('pedidos').filter(x=>digits_(x['CNPJ/CPF'])===user.cnpj).forEach(row=>{
+    const match=String(row.OBSERVACOES||'').match(/^\[ZAP:([a-zA-Z0-9-]{20,80})\]/);
+    if(!match)return;
+    const id=match[1],sum=(groups.get(id)||{id,criadoEm:row.DTPed,status:'TESTE',totalCentavos:0,condicao:String(row.CONDICAO||'')});
+    sum.totalCentavos+=Math.round(Number(row.VALOR)*100)*Number(row.QTDE);groups.set(id,sum);
+  });
+  return [...groups.values()].reverse().slice(0,30);
 }
 
 /** Endpoint para Cloudflare Pages Functions. Publique o Web App como proprietário. */
