@@ -6,8 +6,10 @@ async function ensureGasV3(url) {
   let health;
   try {health=await response.json();}
   catch(_){throw Error('O Web App GAS não respondeu JSON. Confira a URL /exec e as permissões da implantação.');}
-  if(!response.ok||health.api!==3||health.revision!=='v3-ufs-local-20260929'||health.connected!==true)
-    throw Error('A URL configurada aponta para uma versão antiga ou não instalada do GAS. Publique uma nova versão e confira /api/health.');
+  if(!response.ok||health.api!==3||health.revision!=='v3-ufs-local-20260929')
+    throw Error('A implantação /exec do GAS está desatualizada. Atualize-a em Gerenciar implantações → Editar → Nova versão, ou configure a URL da implantação correta em GAS_WEB_APP_URL_V3. Confira /api/health.');
+  if(health.connected!==true)
+    throw Error('O GAS v3 respondeu, mas a planilha ainda não está vinculada. Execute instalarZapperim no mesmo projeto Apps Script da implantação /exec e confira /api/health.');
   checkedGas={url,until:Date.now()+60000};
 }
 export async function onRequestPost({request,env}) {
