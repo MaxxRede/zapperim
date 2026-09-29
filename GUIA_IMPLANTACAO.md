@@ -1,23 +1,25 @@
 # Implantação de teste: Cloudflare Pages + Google Apps Script
 
-O endereço atual `zapperim.pages.dev` continua em produção. Crie **outro projeto Cloudflare Pages**, por exemplo `zapperim-v2`, para testar esta versão. Não vincule este repositório à configuração de build do projeto atual.
+O endereço atual `zapperim.pages.dev` continua em produção. Este instalador cria/publica somente o projeto **`zapperim-app`**. O instalador Windows usa Direct Upload via Wrangler, como no exemplo fornecido; essa modalidade não cria integração automática com o GitHub. Atualizações serão feitas executando o `.bat` novamente.
 
 ## 1. Instalar o GAS na sua conta Google
 
 1. Abra um **projeto Apps Script novo** em [script.google.com](https://script.google.com/). Use uma conta que pode criar planilhas e enviar e-mails.
-2. Substitua o conteúdo do arquivo `Code.gs` pelo conteúdo integral de [`dist/Code.gs`](dist/Code.gs). Ele já contém servidor, instalador e versão de prévia das telas; não é necessário copiar os vários arquivos da pasta `gas/`.
-3. Se o projeto criado mostrar uma função `myFunction` antiga, remova-a. Salve o projeto e selecione `instalarZapperim` no menu de funções; clique em **Executar** e conceda as permissões solicitadas.
+2. Crie **dois arquivos de script no mesmo projeto**: `GAS_INSTALAR_PLANILHA.gs` com o conteúdo de [`dist/GAS_INSTALAR_PLANILHA.gs`](dist/GAS_INSTALAR_PLANILHA.gs) e `GAS_API_ZAPPERIM.gs` com o conteúdo de [`dist/GAS_API_ZAPPERIM.gs`](dist/GAS_API_ZAPPERIM.gs). Os arquivos em `gas/` são o código modular de origem; os de `dist/` já vêm prontos para colar.
+3. Remova a `myFunction` padrão se houver. Salve, selecione `instalarZapperim` e clique em **Executar**. Autorize a criação da planilha e o envio de códigos por e-mail para o projeto.
 4. No **Registro de execução**, copie a URL da nova planilha. Uma planilha chamada **ZAPerim - Base de homologação** será criada. O ID fica nas propriedades do script como `ZAP_SPREADSHEET_ID`; novas execuções reutilizam a mesma planilha e não apagam dados.
-5. Publique como **Aplicativo da Web**, execute como **você** e configure o acesso para **qualquer pessoa** (necessário para a função Cloudflare chegar à API). Copie a URL terminada em `/exec`. Teste a URL no navegador: o GAS mostra uma prévia das telas. A URL `/dev` não é adequada para a Cloudflare.
+5. Publique como **Aplicativo da Web**, execute como **você** e configure o acesso para **qualquer pessoa** (necessário para a função Cloudflare chegar à API). Copie a URL terminada em `/exec`. Ao abrir essa URL no navegador, o GAS deve responder `{"api":2,"connected":true,"status":"ready"}`. A URL `/dev` não é adequada para a Cloudflare.
 
 **Atenção:** o GAS é uma API pública com verificação de acesso por código enviado ao e-mail registrado. A planilha contém dados comerciais; use apenas dados de teste até revisar permissões, limites de envio, fluxos de erro e regras de negócio. O código não contém IDs de planilhas ou credenciais.
 
-## 2. Criar um projeto Cloudflare Pages de teste
+## 2. Publicar pelo instalador Windows
 
-1. Em **Workers & Pages**, crie um projeto **Pages** novo conectado a `MaxxRede/zapperim` (branch `main`). Use um nome diferente do projeto que serve `zapperim.pages.dev`.
-2. Framework preset: **None**. Root directory: `/`. Build command: `npm run build`. Build output directory: `dist/cloudflare`.
-3. Na configuração do projeto Pages, adicione a variável de ambiente **`GAS_WEB_APP_URL`** com a URL `/exec` copiada no passo 1, para **Preview** e **Production** do novo projeto. A função `functions/api.js` usará essa URL no servidor. O navegador do cliente só chama `/api` no mesmo domínio.
-4. Publique e abra o novo endereço `https://zapperim-v2.pages.dev` ou o nome que você escolheu. Se aparecer “API ainda não configurada”, confira a variável e refaça a implantação. Se a resposta do GAS não for JSON, confira `/exec`, acesso do Web App e autorização do script.
+1. Baixe o repositório como ZIP no GitHub e **extraia a pasta inteira**. Mantenha o `.bat`, `tools/`, `functions/` e `dist/` juntos. É necessário ter Node.js LTS no Windows.
+2. Abra [`INSTALAR_ZAPPERIM_WINDOWS.bat`](INSTALAR_ZAPPERIM_WINDOWS.bat). Ele gera os arquivos, abre o login do Wrangler, cria `zapperim-app` se ainda não existir, pergunta o valor da variável `GAS_WEB_APP_URL` e publica a página e a função `/api`.
+3. Quando solicitado pelo Wrangler, cole **somente a URL `/exec`** do GAS. O instalador não pede senha nem ID da planilha. Ele não publica em `zapperim.pages.dev`.
+4. Use a URL **exibida pelo Wrangler** ao final da publicação; acrescente `/api/health` e depois abra a tela inicial na mesma URL. O subdomínio pode receber um sufixo se `zapperim-app.pages.dev` não estiver disponível. Se health não responder `ready`, confira `/exec`, acesso do Web App e autorização do script.
+
+Quem preferir integração GitHub automática pode criar **outro** projeto Pages manualmente com build `npm run build`, output `dist/cloudflare` e a variável `GAS_WEB_APP_URL`. Um projeto iniciado por Direct Upload não pode ser convertido em integração Git posteriormente.
 
 ## 3. Preparar dados de homologação
 
