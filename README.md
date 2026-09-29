@@ -4,6 +4,8 @@ Reconstrução do sistema de pedidos com HTML leve, Cloudflare Pages, Apps Scrip
 
 O contrato das **sete abas exatas** está em [`gas/Schema.gs`](gas/Schema.gs). `npm test` gera e confere os arquivos prontos em `dist/`: instalador da planilha, API e frontend. Siga o [`GUIA_IMPLANTACAO.md`](GUIA_IMPLANTACAO.md) para instalar em ambiente de teste.
 
+O instalador Windows considera a publicação concluída quando `wrangler pages deploy` termina com sucesso e mostra o domínio do projeto exclusivo. A consulta posterior à lista de projetos não bloqueia o resultado, pois a lista pode demorar a refletir uma criação recente.
+
 ## Modelo das abas
 
 | Aba | Uso nesta versão |
