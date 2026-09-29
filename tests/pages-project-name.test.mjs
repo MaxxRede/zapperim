@@ -17,3 +17,8 @@ try {
   assert.equal(run().status,2);
 }finally{rmSync(dir,{recursive:true,force:true});}
 console.log('Instalador: nome exclusivo persistente validado.');
+const bat=readFileSync('INSTALAR_ZAPPERIM_WINDOWS.bat','utf8');
+const deploy=bat.indexOf('wrangler pages deploy');
+assert.ok(deploy>0);
+assert.match(bat.slice(deploy),/echo Publicacao concluida no projeto/);
+assert.doesNotMatch(bat.slice(deploy),/pages project list/);
