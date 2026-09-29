@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const ctx=vm.createContext({});
+for(const f of ['Schema.gs','Core.gs','Auth.gs'])vm.runInContext(fs.readFileSync(__dirname+'/../gas/'+f,'utf8'),ctx,{filename:f});
+const rows=[];
+ctx.records_=name=>name==='acesso'?rows.map((row,i)=>({...row,_ROW:i+2})):[];
+ctx.append_=(name,row)=>{assert.equal(name,'acesso');rows.push(row);};
+ctx.enabledUf_=()=>true;ctx.config_=()=>'';ctx.solicitarCodigo=()=>({});
+ctx.uuid_=()=> '00000000-0000-0000-0000-000000000000';
+ctx.LockService={getScriptLock:()=>({waitLock(){},releaseLock(){}})};
+const result=vm.runInContext('cadastrarCliente',ctx)({cnpj:'99.999.999/0001-99',nome:'TESTE 123',telefone:'19982368901',email:'teste@gmail.com',endereco:'END 123',cidade:'AVARE',uf:'SP',cep:'18700000',responsavel:'Márcio',cargo:'Comprador'});
+assert.match(result.mensagem,/Cadastro recebido/);
+assert.equal(rows.length,1);assert.equal(rows[0].ST,'ZAP_PERIM');assert.equal(rows[0].CNPJ,'99999999000199');
+assert.equal(JSON.parse(rows[0].OBSERVACOES).endereco,'END 123');
+assert.equal(JSON.parse(rows[0].OBSERVACOES).cep,'18700000');
+assert.equal(Object.prototype.toString.call(rows[0].STATUS),'[object Date]');
+console.log('Acesso v3: cadastro completo em observações e data de entrada validados.');
