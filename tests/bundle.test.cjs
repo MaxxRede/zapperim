@@ -1,6 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const installer=fs.readFileSync(__dirname+'/../dist/GAS_INSTALAR_PLANILHA.gs','utf8');
 const api=fs.readFileSync(__dirname+'/../dist/GAS_API_ZAPPERIM.gs','utf8');
+assert.ok(!api.includes('ZAP_UFS'));
 const standalone=vm.createContext({});
 vm.runInContext(api,standalone,{filename:'GAS_API_ZAPPERIM.gs'});
 assert.equal(vm.runInContext("uf_('SP')",standalone),'SP');
@@ -9,7 +10,7 @@ const context=vm.createContext({PropertiesService:{getScriptProperties:()=>({get
 vm.runInContext(installer+'\n'+api,context,{filename:'GAS_API_ZAPPERIM.gs'});
 context.ContentService={MimeType:{JSON:'application/json'},createTextOutput:value=>({value,setMimeType(){return this;}})};
 const health=vm.runInContext('doGet()',context);
-assert.deepEqual(JSON.parse(health.value),{api:3,connected:true,status:'ready'});
+assert.deepEqual(JSON.parse(health.value),{api:3,revision:'v3-ufs-local-20260929',connected:true,status:'ready'});
 context.identificarCnpj=()=>({tipo:'NOVO'});
 const output=vm.runInContext("doPost({postData:{contents:JSON.stringify({action:'identificarCnpj',args:['99999999000199']})}})",context);
 assert.equal(JSON.parse(output.value).result.tipo,'NOVO');
