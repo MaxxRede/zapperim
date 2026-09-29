@@ -11,23 +11,20 @@ if(!html.includes(styleToken)||!html.includes(appToken))throw Error('Marcadores 
 html=html.replace(styleToken,style).replace(appToken,app);
 if(html.includes('<?!='))throw Error('Template HTML não resolvido.');
 
-const modules=['Setup.gs','Core.gs','Auth.gs','Catalog.gs','Orders.gs','Api.gs'];
-const sources=modules.map(read);
-const original="HtmlService.createTemplateFromFile('Index').evaluate()";
-if(!sources[1].includes(original))throw Error('doGet não corresponde ao formato esperado.');
-sources[1]=sources[1].replace(original,'HtmlService.createHtmlOutput(ZAP_HTML)');
-const output=[
-  '/** ZAPerim — instalador unificado gerado de gas/*. Execute instalarZapperim() no editor.',
-  ' * Não edite este arquivo diretamente; altere os módulos e execute node tools/build-installer.mjs.',
-  ' * A função cria uma planilha nova somente quando ZAP_SPREADSHEET_ID não existe.',
-  ' */',
-  ...sources,
-  'const ZAP_HTML = '+JSON.stringify(html)+';',''
-].join('\n\n');
-const destination=resolve(root,'dist','Code.gs');
-mkdirSync(dirname(destination),{recursive:true});
-writeFileSync(destination,output);
-console.log(`${destination}: ${Buffer.byteLength(output)} bytes`);
+const installer=[
+  '/** ZAPerim — instale a planilha uma vez; mantenha este arquivo no mesmo projeto da API. */',
+  read('Setup.gs'),''].join('\n\n');
+const installerFile=resolve(root,'dist','GAS_INSTALAR_PLANILHA.gs');
+mkdirSync(dirname(installerFile),{recursive:true});
+writeFileSync(installerFile,installer);
+console.log(`${installerFile}: ${Buffer.byteLength(installer)} bytes`);
+
+const api=[
+  '/** ZAPerim — API do Web App para Cloudflare Pages. Requer GAS_INSTALAR_PLANILHA.gs no mesmo projeto. */',
+  ...['Core.gs','Auth.gs','Catalog.gs','Orders.gs','Api.gs'].map(read),''].join('\n\n');
+const apiFile=resolve(root,'dist','GAS_API_ZAPPERIM.gs');
+writeFileSync(apiFile,api);
+console.log(`${apiFile}: ${Buffer.byteLength(api)} bytes`);
 
 const apiCall='google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[method](...args)';
 if(!app.includes(apiCall))throw Error('RPC da tela não encontrado.');
