@@ -2,7 +2,8 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
 const code=fs.readFileSync(__dirname+'/../dist/GAS_INSTALAR_PLANILHA.gs','utf8');
 const sheets=new Map(), props=new Map();let creates=0;
-function sheet(name){const row=[];let dataRows=0;return {name,row,getRange(r,_c,_nr,nc){const range={getValues:()=>[Array.from({length:nc},(_,i)=>row[i]||'')],setValues:values=>{if(r===1)row.splice(0,row.length,...values[0]);else dataRows=values.length;return range;},setBackground:()=>range,setFontColor:()=>range,setFontWeight:()=>range,setNumberFormat:()=>range};return range;},getMaxRows:()=>20,getLastRow:()=>dataRows?dataRows+1:row.length?1:0,setFrozenRows(){}};}
+props.set('ZAP_SPREADSHEET_ID','old-base-id');
+function sheet(name){const row=[];let dataRows=0;return {name,row,getRange(r,_c,_nr,nc){const range={getValues:()=>[Array.from({length:nc},(_,i)=>row[i]||'')],setValues:values=>{if(r===1)row.splice(0,row.length,...values[0]);else dataRows=values.length;return range;},setBackground:()=>range,setFontColor:()=>range,setFontWeight:()=>range,setNumberFormat:()=>range};return range;},getMaxRows:()=>20,getLastColumn:()=>row.length,getLastRow:()=>dataRows?dataRows+1:row.length?1:0,setFrozenRows(){}};}
 const spreadsheet={getId:()=> 'sheet-test',getUrl:()=> 'https://docs.google.com/spreadsheets/d/sheet-test',getSheetByName:n=>sheets.get(n),insertSheet:n=>{const s=sheet(n);sheets.set(n,s);return s;},getSheets:()=>[...sheets.values()],deleteSheet:s=>sheets.delete(s.name)};
 const ctx=vm.createContext({
   Logger:{log(){}},
@@ -13,10 +14,10 @@ const ctx=vm.createContext({
 });
 vm.runInContext(code,ctx);
 const install=vm.runInContext('instalarZapperim',ctx);
-const first=install();assert.equal(first.id,'sheet-test');assert.equal(first.abas.length,11);assert.equal(creates,1);
-assert.equal(sheets.get('CONFIG').row[0],'CHAVE');
+const first=install();assert.equal(first.id,'sheet-test');assert.deepEqual(Array.from(first.abas),['usuarios','acesso','pedidos','view_bd','financeiro','stq','imagens']);assert.equal(creates,1);
+assert.deepEqual(sheets.get('pedidos').row,['CNPJ/CPF','RESONSAVEL','ATENDIMENTO','TABELA','CODIGO','PRODUTO','QTDE','VALOR','DESC_PROD','BONIFICADO','PGTO','CONDICAO','DESC_PEDIDO','MAT APOIO','OBSERVACOES','ZERADO','DTPed']);
 install();assert.equal(creates,1);
-sheets.get('CLIENTES').row[0]='COLUNA_DIVERGENTE';
+sheets.get('view_bd').row[0]='COLUNA_DIVERGENTE';
 assert.throws(()=>install(),/Cabeçalho divergente/);
 ctx.Session.getActiveUser=()=>({getEmail:()=>''});
 assert.throws(()=>install(),/proprietário/);
