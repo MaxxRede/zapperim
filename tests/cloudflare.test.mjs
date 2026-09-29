@@ -41,5 +41,13 @@ try {
   const uninstalledPost=await onRequestPost({request:uninstalledRequest,env:{GAS_WEB_APP_URL_V3:'https://script.google.com/macros/s/NOT_INSTALLED/exec'}});
   assert.equal(uninstalledPost.status,503);
   assert.match((await uninstalledPost.json()).error,/instalarZapperim/);
+  globalThis.fetch=async()=>{throw new DOMException('The operation was aborted due to timeout','TimeoutError');};
+  const timedOut=await onRequestGet({env:{GAS_WEB_APP_URL_V3:url}});
+  assert.equal(timedOut.status,502);
+  assert.equal((await timedOut.json()).status,'gas_timeout');
+  const timeoutRequest=new Request('https://zapperim.pages.dev/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'identificarCnpj',args:['99999999000199']})});
+  const timeoutPost=await onRequestPost({request:timeoutRequest,env:{GAS_WEB_APP_URL_V3:'https://script.google.com/macros/s/TIMEOUT/exec'}});
+  assert.equal(timeoutPost.status,503);
+  assert.match((await timeoutPost.json()).error,/Tempo esgotado/);
 } finally {globalThis.fetch=originalFetch;}
 console.log('Cloudflare: frontend e proxy GAS validados.');
