@@ -103,18 +103,18 @@ function saveAccess_(cnpj,responsavel,tabela,data) {
 function cadastrarCliente(data) {
   const cnpj=cnpj_(data.cnpj), uf=uf_(data.uf), email=email_(data.email);
   if(!enabledUf_(uf))throw new Error('Ainda não atendemos esta UF.');
-  const req={cnpj,nome:limited_(data.nome,140,'Razão social'),email,
-    telefone:digits_(data.telefone),endereco:limited_(data.endereco,180,'Endereço'),
-    cidade:limited_(data.cidade,80,'Cidade'),uf,cep:digits_(data.cep),
-    complemento:limited_(data.complemento,100,'Complemento'),responsavel:limited_(data.responsavel,100,'Responsável'),
-    cargo:limited_(data.cargo,80,'Cargo'),seller:limited_(data.seller,30,'Vendedor'),tipo:'PENDENTE'};
-  if(!req.nome||!req.endereco||!req.cidade||!req.responsavel||!req.cargo||!/^[0-9]{10,11}$/.test(req.telefone)||!/^[0-9]{8}$/.test(req.cep))
-    throw new Error('Preencha os dados obrigatórios; telefone com DDD e CEP com 8 dígitos.');
+  const req={cnpj:formatCnpj_(cnpj),nome:upper_(data.nome,140),email,
+    telefone:phone_(data.telefone),endereco:upper_(data.endereco,180),
+    cidade:upper_(data.cidade,80),uf,cep:cep_(data.cep),
+    complemento:upper_(data.complemento,100),responsavel:upper_(data.responsavel,100),
+    cargo:upper_(data.cargo,80),seller:upper_(data.seller,30),tipo:'PENDENTE'};
+  if(!req.nome||!req.endereco||!req.cidade||!req.responsavel||!req.cargo)
+    throw new Error('Preencha todos os dados obrigatórios.');
   const lock=LockService.getScriptLock();lock.waitLock(30000);
   try {
     if(clientFor_(cnpj))throw new Error('Este CNPJ já consta da base. Acesse com o e-mail registrado.');
     if(pendingFor_(cnpj))throw new Error('Cadastro já recebido. Use o e-mail informado ou solicite revisão.');
-    saveAccess_(formatCnpj_(cnpj),req.responsavel,config_('TABELA_NOVO')||'NOVO',req);
+    saveAccess_(req.cnpj,req.responsavel,upper_(config_('TABELA_NOVO')||'NOVO',60),req);
   }finally{lock.releaseLock();}
   solicitarCodigo(cnpj,email);
   return {mensagem:'Cadastro recebido. Enviamos um código ao e-mail informado; a aprovação comercial ainda está pendente.'};
@@ -156,7 +156,7 @@ function confirmarCodigo(cnpj,email,code) {
     {tipo:'EXISTENTE',cnpj:id,nome:profile.nome,email:mail,telefone:profile.telefone,
       endereco:String(found.row['ENDEREÇO']||''),cidade:String(found.row.CIDADE||''),uf:profile.uf,
       responsavel:profile.responsavel,cargo:profile.cargo,tabela:profile.tabela,condicao:profile.condicao});
-  saveAccess_(id,profile.responsavel,profile.tabela,notes);
+  saveAccess_(formatCnpj_(id),profile.responsavel,profile.tabela,notes);
   return {token,cliente:profile};
 }
 function session_(token) {
@@ -168,28 +168,28 @@ function session_(token) {
 }
 function profile_(found) {
   const row=found.row, notes=accessData_(found.access||row);
-  if(found.tipo==='PENDENTE')return {cnpj:digits_(row.CNPJ),nome:String(notes.nome||''),uf:String(notes.uf||''),
-    responsavel:String(notes.responsavel||row.RESPONSAVEL||''),email:String(notes.email||''),telefone:String(notes.telefone||''),
-    cargo:String(notes.cargo||''),tipo:'PENDENTE',tabela:String(row.TABELA||'NOVO'),condicao:'A VISTA',minimo:''};
+  if(found.tipo==='PENDENTE')return {cnpj:formatCnpj_(digits_(row.CNPJ)),nome:upper_(notes.nome||'',140),uf:String(notes.uf||''),
+    responsavel:upper_(notes.responsavel||row.RESPONSAVEL||'',100),email:String(notes.email||''),telefone:formatPhone_(notes.telefone||''),
+    cargo:upper_(notes.cargo||'',80),tipo:'PENDENTE',tabela:upper_(row.TABELA||'NOVO',60),condicao:'A VISTA',minimo:''};
   const uf=ufEndereco_(row['ENDEREÇO']);
-  return {cnpj:digits_(row['CNPJ/CPF']),nome:String(row.CLIENTE||''),uf,
-    responsavel:String(notes.responsavel||found.access&&found.access.RESPONSAVEL||''),email:String(row['E-MAIL']||''),
-    telefone:String(notes.telefone||row.TELEFONE||''),cargo:String(notes.cargo||''),
-    tipo:'EXISTENTE',tabela:String(found.access&&found.access.TABELA||row.TABELA||''),
-    condicao:String(row['CONDIÇÃO']||'A VISTA'),minimo:row['PED. MÍNIMO']};
+  return {cnpj:formatCnpj_(digits_(row['CNPJ/CPF'])),nome:upper_(row.CLIENTE||'',140),uf,
+    responsavel:upper_(notes.responsavel||(found.access&&found.access.RESPONSAVEL)||'',100),email:String(row['E-MAIL']||''),
+    telefone:formatPhone_(notes.telefone||row.TELEFONE||''),cargo:upper_(notes.cargo||'',80),
+    tipo:'EXISTENTE',tabela:upper_((found.access&&found.access.TABELA)||row.TABELA||'',60),
+    condicao:upper_(row['CONDIÇÃO']||'A VISTA',60),minimo:row['PED. MÍNIMO']};
 }
 function minhaConta(token){return profile_(session_(token));}
 function confirmarDados(token,data) {
-  const user=session_(token),responsavel=limited_(data.responsavel,100,'Responsável'),cargo=limited_(data.cargo,80,'Cargo'),telefone=digits_(data.telefone);
-  if(!responsavel||!cargo||!/^[0-9]{10,11}$/.test(telefone))throw new Error('Informe responsável, cargo e telefone com DDD.');
+  const user=session_(token),responsavel=upper_(data.responsavel,100),cargo=upper_(data.cargo,80),telefone=phone_(data.telefone);
+  if(!responsavel||!cargo)throw new Error('Informe responsável e cargo.');
   const lock=LockService.getScriptLock();lock.waitLock(30000);
   try {
     const current=session_(token),profile=profile_(current),notes=Object.assign({},accessData_(current.access||{}),
-      {tipo:current.tipo,cnpj:user.cnpj,nome:profile.nome,email:user.email,responsavel,cargo,telefone,
-        endereco:current.tipo==='EXISTENTE'?String(current.row['ENDEREÇO']||''):accessData_(current.access||{}).endereco,
-        cidade:current.tipo==='EXISTENTE'?String(current.row.CIDADE||''):accessData_(current.access||{}).cidade,
+      {tipo:current.tipo,cnpj:formatCnpj_(user.cnpj),nome:profile.nome,email:user.email,responsavel,cargo,telefone,
+        endereco:current.tipo==='EXISTENTE'?upper_(current.row['ENDEREÇO']||'',180):upper_(accessData_(current.access||{}).endereco||'',180),
+        cidade:current.tipo==='EXISTENTE'?upper_(current.row.CIDADE||'',80):upper_(accessData_(current.access||{}).cidade||'',80),
         uf:profile.uf,tabela:profile.tabela,condicao:profile.condicao});
-    saveAccess_(user.cnpj,responsavel,profile.tabela,notes);
+    saveAccess_(formatCnpj_(user.cnpj),responsavel,profile.tabela,notes);
     return profile_(session_(token));
   }finally{lock.releaseLock();}
 }
