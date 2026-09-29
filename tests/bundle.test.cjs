@@ -1,0 +1,17 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const code=fs.readFileSync(__dirname+'/../dist/Code.gs','utf8');
+let html='';
+const context=vm.createContext({HtmlService:{createHtmlOutput:value=>{html=value;return {setTitle(){return this;},addMetaTag(){return this;}};}}});
+vm.runInContext(code,context,{filename:'Code.gs'});
+vm.runInContext('doGet()',context);
+for(const name of ['cnpjForm','registerForm','emailForm','verifyForm','confirmForm','page'])assert.ok(html.includes(`id="${name}"`),name);
+assert.ok(html.includes('google.script.run'));
+assert.ok(html.includes('<style>')&&html.includes('<script>'));
+assert.ok(!html.includes('<?!='));
+context.ContentService={MimeType:{JSON:'application/json'},createTextOutput:value=>({value,setMimeType(){return this;}})};
+context.identificarCnpj=()=>({tipo:'NOVO'});
+const output=vm.runInContext("doPost({postData:{contents:JSON.stringify({action:'identificarCnpj',args:['99999999000199']})}})",context);
+assert.equal(JSON.parse(output.value).result.tipo,'NOVO');
+const blocked=vm.runInContext("doPost({postData:{contents:JSON.stringify({action:'instalarZapperim',args:[]})}})",context);
+assert.equal(JSON.parse(blocked.value).ok,false);
+console.log('Pacote unificado: doGet e telas integradas validados.');
