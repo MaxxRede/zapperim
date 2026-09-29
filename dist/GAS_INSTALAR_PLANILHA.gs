@@ -38,15 +38,14 @@ function instalarZapperim() {
     });
     Object.keys(ZAP_SCHEMA).forEach(name=>{
       const header=ZAP_SCHEMA[name],existing=ss.getSheetByName(name);
-      if(existing && existing.getLastRow()>0)return; // Preserva conteúdo e formatação da aba existente.
       const sh=existing||ss.insertSheet(name);
-      sh.getRange(1,1,1,header.length).setValues([header]).setBackground('#17365d').setFontColor('#fff').setFontWeight('bold');
+      if(sh.getLastRow()===0)sh.getRange(1,1,1,header.length).setValues([header]).setBackground('#17365d').setFontColor('#fff').setFontWeight('bold');
       sh.setFrozenRows(1);
       header.forEach((column,i)=>{
         const range=sh.getRange(2,i+1,Math.max(1,sh.getMaxRows()-1),1);
         if(['CNPJ','CNPJ/CPF','COD','EAN','COD_CLI','TELEFONE','LOGIN'].includes(column))range.setNumberFormat('@');
         if(['PRECO VND','VALOR','PED. MÍNIMO','CREDITO','SALDO','TOT_COMPRAS','MED_COMPRA'].includes(column))range.setNumberFormat('"R$" #,##0.00');
-        if(['STATUS','DTPed'].includes(column))range.setNumberFormat('dd/MM/yyyy HH:mm:ss');
+        if(['STATUS','DTPed','DATA_ULT_COMPRA'].includes(column))range.setNumberFormat('dd/MM/yyyy HH:mm:ss');
       });
     });
     // Só atualiza o vínculo depois de validar e preparar a planilha indicada.
@@ -57,4 +56,3 @@ function instalarZapperim() {
     return result;
   }finally{lock.releaseLock();}
 }
-
