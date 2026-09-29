@@ -10,7 +10,6 @@ var ZAP_SCHEMA = Object.freeze({
   stq: ['EAN','COD','DESCRICAO','TABELA','ESTOQUE','PRECO VND','SALDO_STQ','MARCA','PACKING'],
   imagens: ['Nome do Arquivo','URL','Produto']
 });
-var ZAP_UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
 /* Execute instalarZapperim() em projeto Apps Script novo. Não modifica a base anterior. */
 function instalarZapperim() {
