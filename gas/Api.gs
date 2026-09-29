@@ -6,7 +6,7 @@ function doPost(event) {
       solicitarCodigo:solicitarCodigo,confirmarCodigo:confirmarCodigo,confirmarDados:confirmarDados,
       minhaConta:minhaConta,sair:sair,listarCatalogo:listarCatalogo,topDez:topDez,
       pedidoDinamico:pedidoDinamico,concluirPedido:concluirPedido,meusPedidos:meusPedidos};
-    const fn=actions[body.action];
+    const fn=Object.prototype.hasOwnProperty.call(actions,body.action)?actions[body.action]:null;
     if(!fn||!Array.isArray(body.args)||body.args.length>3)throw new Error('Ação inválida.');
     return json_({ok:true,result:fn.apply(null,body.args)});
   } catch(error) {
