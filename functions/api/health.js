@@ -6,7 +6,9 @@ export async function onRequestGet({env}) {
   try {
     const response=await fetch(url,{redirect:'follow',signal:AbortSignal.timeout(15000)});
     const data=await response.json();
-    if(!response.ok||data.api!==3||typeof data.connected!=='boolean')throw Error('invalid');
+    if(!response.ok||data.api!==3||data.revision!=='v3-ufs-local-20260929')
+      return Response.json({api:3,connected:false,status:'gas_outdated',receivedApi:data.api??null},{status:503});
+    if(typeof data.connected!=='boolean')throw Error('invalid');
     return Response.json(data,{status:data.connected?200:503,headers:{'Cache-Control':'no-store'}});
   }catch(_){return Response.json({api:3,connected:false,status:'gas_unreachable'},{status:502});}
 }
