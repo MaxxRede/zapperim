@@ -16,13 +16,13 @@ globalThis.fetch=async (_url,opts)=>{
 };
 try {
   const request=new Request('https://zapperim.pages.dev/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'identificarCnpj',args:['99999999000199']})});
-  const response=await onRequestPost({request,env:{GAS_WEB_APP_URL:url}});
+  const response=await onRequestPost({request,env:{GAS_WEB_APP_URL_V3:url}});
   assert.equal(response.status,200);
   assert.deepEqual(await response.json(),{ok:true,result:{tipo:'NOVO'}});
   const missing=await onRequestPost({request,env:{}});
   assert.equal(missing.status,503);
-  globalThis.fetch=async()=>new Response(JSON.stringify({api:2,connected:true,status:'ready'}),{status:200});
-  const health=await onRequestGet({env:{GAS_WEB_APP_URL:url}});
-  assert.deepEqual(await health.json(),{api:2,connected:true,status:'ready'});
+  globalThis.fetch=async()=>new Response(JSON.stringify({api:3,connected:true,status:'ready'}),{status:200});
+  const health=await onRequestGet({env:{GAS_WEB_APP_URL_V3:url}});
+  assert.deepEqual(await health.json(),{api:3,connected:true,status:'ready'});
 } finally {globalThis.fetch=originalFetch;}
 console.log('Cloudflare: frontend e proxy GAS validados.');
