@@ -3,7 +3,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const base=__dirname+'/../gas/';
 const ctx=vm.createContext({console,Number,Map,Set,Date,JSON,String,Object,Array,Math,Error});
-for(const f of ['Setup.gs','Core.gs','Auth.gs','Catalog.gs','Orders.gs']) vm.runInContext(fs.readFileSync(base+f,'utf8'),ctx,{filename:f});
+for(const f of ['Schema.gs','Setup.gs','Core.gs','Auth.gs','Catalog.gs','Orders.gs']) vm.runInContext(fs.readFileSync(base+f,'utf8'),ctx,{filename:f});
 const orders=[];const lines=[];const product={codigo:'4447',descricao:'PRODUTO TESTE',precoCentavos:3590,estoque:10};
 const profile={cnpj:'99999999000199',nome:'Cliente teste',uf:'SP',tipo:'EXISTENTE',tabela:'T1',condicao:'A VISTA'};
 ctx.session_=()=>({cnpj:profile.cnpj,email:'teste@example.com',row:{SELLER_ID:'241'}});
