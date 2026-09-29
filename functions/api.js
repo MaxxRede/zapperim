@@ -2,7 +2,13 @@
 let checkedGas={url:'',until:0};
 async function ensureGasV3(url) {
   if(checkedGas.url===url && checkedGas.until>Date.now())return;
-  const response=await fetch(url,{redirect:'follow',signal:AbortSignal.timeout(15000)});
+  let response;
+  try {response=await fetch(url,{redirect:'follow',signal:AbortSignal.timeout(25000)});}
+  catch(error){
+    if(error?.name==='TimeoutError'||error?.name==='AbortError')
+      throw Error('Tempo esgotado ao consultar o GAS. Verifique a implantação /exec e tente novamente.');
+    throw Error('Não foi possível consultar o GAS. Verifique a implantação /exec e tente novamente.');
+  }
   let health;
   try {health=await response.json();}
   catch(_){throw Error('O Web App GAS não respondeu JSON. Confira a URL /exec e as permissões da implantação.');}
