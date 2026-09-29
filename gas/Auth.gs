@@ -14,7 +14,7 @@ function pendingFor_(cnpj) {
 }
 function identificarCnpj(cnpj) {
   const id=cnpj_(cnpj);
-  return {tipo:clientFor_(id)?'EXISTENTE':pendingFor_(id)?'PENDENTE':'NOVO',cnpj:id};
+  return {tipo:clientFor_(id)?'EXISTENTE':pendingFor_(id)?'PENDENTE':'NOVO',cnpj:formatCnpj_(id)};
 }
 function saveAccess_(cnpj,responsavel,tabela,data) {
   append_('acesso',{ST:'ZAP_PERIM',CNPJ:cnpj,RESPONSAVEL:responsavel,TABELA:tabela,
@@ -34,7 +34,7 @@ function cadastrarCliente(data) {
   try {
     if(clientFor_(cnpj))throw new Error('Este CNPJ já consta da base. Acesse com o e-mail registrado.');
     if(pendingFor_(cnpj))throw new Error('Cadastro já recebido. Use o e-mail informado ou solicite revisão.');
-    saveAccess_(cnpj,req.responsavel,config_('TABELA_NOVO')||'NOVO',req);
+    saveAccess_(formatCnpj_(cnpj),req.responsavel,config_('TABELA_NOVO')||'NOVO',req);
   }finally{lock.releaseLock();}
   solicitarCodigo(cnpj,email);
   return {mensagem:'Cadastro recebido. Enviamos um código ao e-mail informado; a aprovação comercial ainda está pendente.'};
