@@ -13,7 +13,7 @@ var ZAP_SCHEMA = Object.freeze({
 
 function doGet() {
   const installed=!!PropertiesService.getScriptProperties().getProperty('ZAP_BASE_V3_ID');
-  return json_({api:3,revision:'v3-ufs-local-20260929',connected:installed,status:installed?'ready':'not_installed'});
+  return json_({api:3,revision:'v3-formatos-logos-20260929',connected:installed,status:installed?'ready':'not_installed'});
 }
 function ss_() {
   const id=PropertiesService.getScriptProperties().getProperty('ZAP_BASE_V3_ID');
@@ -29,11 +29,22 @@ function records_(name) {
 function append_(name,row) { tab_(name).appendRow(ZAP_SCHEMA[name].map(k=>row[k] == null ? '' : safeCell_(row[k]))); }
 function safeCell_(value) { return typeof value==='string' && /^[=+\-@]/.test(value) ? "'"+value : value; }
 function config_(key) { return String(PropertiesService.getScriptProperties().getProperty('ZAP_'+key+'_V3')||'').trim(); }
-function now_() { return new Date().toISOString(); }
+function now_() { return Utilities.formatDate(new Date(),Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy HH:mm:ss'); }
+function upper_(value,max) { return clean_(value,max).toLocaleUpperCase('pt-BR'); }
+function formatCnpj_(value) { const s=digits_(value); return s.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'); }
+function validCnpj_(s) {
+  if(!/^\d{14}$/.test(s)||/^(\d)\1{13}$/.test(s))return false;
+  const calc=len=>{let sum=0,pos=len-7;for(let i=0;i<len;i++){sum+=Number(s[i])*pos--;if(pos<2)pos=9;}const r=sum%11;return r<2?0:11-r;};
+  return calc(12)===Number(s[12])&&calc(13)===Number(s[13]);
+}
+function formatPhone_(value) { const s=digits_(value); if(s.length===10)return s.replace(/^(\d{2})(\d{4})(\d{4})$/,'($1) $2-$3'); if(s.length===11)return s.replace(/^(\d{2})(\d{5})(\d{4})$/,'($1) $2-$3'); return s; }
+function phone_(value) { const s=digits_(value); if(!/^\d{10,11}$/.test(s))throw new Error('Telefone inválido. Informe DDD e número fixo ou celular.'); return formatPhone_(s); }
+function formatCep_(value) { const s=digits_(value); return s.length===8?s.replace(/^(\d{5})(\d{3})$/,'$1-$2'):s; }
+function cep_(value) { const s=digits_(value); if(!/^\d{8}$/.test(s))throw new Error('CEP inválido. Informe 8 dígitos.'); return formatCep_(s); }
 function digits_(s) { return String(s||'').replace(/\D/g,''); }
 function clean_(value,max) { return String(value||'').trim().slice(0,max); }
 function email_(v) { const s=clean_(v,180).toLowerCase(); if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) throw new Error('E-mail inválido.'); return s; }
-function cnpj_(v) { const s=digits_(v); if(!/^\d{14}$/.test(s)) throw new Error('Informe um CNPJ de 14 dígitos.'); return s; }
+function cnpj_(v) { const s=digits_(v); if(!validCnpj_(s)) throw new Error('CNPJ inválido. Confira os 14 dígitos e os dígitos verificadores.'); return s; }
 function validUf_(s) { return 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ').includes(s); }
 function uf_(v) { const s=clean_(v,2).toUpperCase(); if(!validUf_(s)) throw new Error('UF inválida.'); return s; }
 function uuid_() { return Utilities.getUuid(); }
@@ -83,7 +94,7 @@ function pendingFor_(cnpj) {
 }
 function identificarCnpj(cnpj) {
   const id=cnpj_(cnpj);
-  return {tipo:clientFor_(id)?'EXISTENTE':pendingFor_(id)?'PENDENTE':'NOVO',cnpj:id};
+  return {tipo:clientFor_(id)?'EXISTENTE':pendingFor_(id)?'PENDENTE':'NOVO',cnpj:formatCnpj_(id)};
 }
 function saveAccess_(cnpj,responsavel,tabela,data) {
   append_('acesso',{ST:'ZAP_PERIM',CNPJ:cnpj,RESPONSAVEL:responsavel,TABELA:tabela,
@@ -103,7 +114,7 @@ function cadastrarCliente(data) {
   try {
     if(clientFor_(cnpj))throw new Error('Este CNPJ já consta da base. Acesse com o e-mail registrado.');
     if(pendingFor_(cnpj))throw new Error('Cadastro já recebido. Use o e-mail informado ou solicite revisão.');
-    saveAccess_(cnpj,req.responsavel,config_('TABELA_NOVO')||'NOVO',req);
+    saveAccess_(formatCnpj_(cnpj),req.responsavel,config_('TABELA_NOVO')||'NOVO',req);
   }finally{lock.releaseLock();}
   solicitarCodigo(cnpj,email);
   return {mensagem:'Cadastro recebido. Enviamos um código ao e-mail informado; a aprovação comercial ainda está pendente.'};
@@ -267,10 +278,10 @@ function concluirPedido(token,payload) {
     });
     if(!Number.isSafeInteger(total)||total<min)throw new Error('Pedido mínimo: '+(min/100).toFixed(2)+'; subtotal: '+(total/100).toFixed(2)+'.');
     if(limit!==null&&total>limit)throw new Error('Limite para novo cliente: '+(limit/100).toFixed(2)+'.');
-    const obs=limited_(data.observacoes,900,'Observações');
+    const obs=upper_(data.observacoes,900);
     const stamp=new Date(),marker=orderMarker_(requestId);
     const values=rows.map(row=>ZAP_SCHEMA.pedidos.map(key=>{
-      const fields={'CNPJ/CPF':user.cnpj,RESONSAVEL:profile.responsavel,ATENDIMENTO:user.row.RCA||'CLIENTE',
+      const fields={'CNPJ/CPF':formatCnpj_(user.cnpj),RESONSAVEL:upper_(profile.responsavel,100),ATENDIMENTO:user.row.RCA||'CLIENTE',
         TABELA:profile.tabela,CODIGO:row.codigo,PRODUTO:row.produto,QTDE:row.quantidade,VALOR:row.valor,
         DESC_PROD:0,BONIFICADO:'NAO',PGTO:payment,CONDICAO:payment,DESC_PEDIDO:0,'MAT APOIO':'',
         OBSERVACOES:marker+(obs?' '+obs:''),ZERADO:'NAO',DTPed:stamp};
@@ -308,4 +319,3 @@ function doPost(event) {
   }
 }
 function json_(value) {return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(ContentService.MimeType.JSON);}
-
