@@ -85,7 +85,7 @@ if not "!URL_STATUS!"=="0" (
   echo A lista de projetos nao confirmou o dominio. Conferindo a publicacao diretamente...
   goto :conferir_publicacao
 )
-echo Resultado esperado em /api/health: api 3, revision v3-ufs-local-20260929, connected true, status ready.
+echo Resultado esperado em /api/health: api 3, revision v3-formatos-logos-20260929, connected true, status ready.
 pause
 exit /b 0
 
