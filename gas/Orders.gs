@@ -35,10 +35,10 @@ function concluirPedido(token,payload) {
     });
     if(!Number.isSafeInteger(total)||total<min)throw new Error('Pedido mínimo: '+(min/100).toFixed(2)+'; subtotal: '+(total/100).toFixed(2)+'.');
     if(limit!==null&&total>limit)throw new Error('Limite para novo cliente: '+(limit/100).toFixed(2)+'.');
-    const obs=limited_(data.observacoes,900,'Observações');
+    const obs=upper_(data.observacoes,900);
     const stamp=new Date(),marker=orderMarker_(requestId);
     const values=rows.map(row=>ZAP_SCHEMA.pedidos.map(key=>{
-      const fields={'CNPJ/CPF':user.cnpj,RESONSAVEL:profile.responsavel,ATENDIMENTO:user.row.RCA||'CLIENTE',
+      const fields={'CNPJ/CPF':formatCnpj_(user.cnpj),RESONSAVEL:upper_(profile.responsavel,100),ATENDIMENTO:user.row.RCA||'CLIENTE',
         TABELA:profile.tabela,CODIGO:row.codigo,PRODUTO:row.produto,QTDE:row.quantidade,VALOR:row.valor,
         DESC_PROD:0,BONIFICADO:'NAO',PGTO:payment,CONDICAO:payment,DESC_PEDIDO:0,'MAT APOIO':'',
         OBSERVACOES:marker+(obs?' '+obs:''),ZERADO:'NAO',DTPed:stamp};
