@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 title ZAPerim - instalar Cloudflare Pages (projeto separado)
 
@@ -43,10 +43,21 @@ if "%PROJECT_STATUS%"=="1" (
 )
 
 echo.
-echo Agora cole a URL /exec do seu GAS quando o Wrangler pedir o valor.
-echo Nao digite tokens, senhas nem o ID da planilha aqui.
-call npx --yes wrangler pages secret put GAS_WEB_APP_URL --project-name zapperim-app
-if errorlevel 1 goto :falha
+if exist "GAS_WEB_APP_URL.txt" (
+  echo Configurando a URL do GAS a partir de GAS_WEB_APP_URL.txt.
+  set "SECRET_FILE=%TEMP%\zapperim-secret-%RANDOM%.json"
+  call node tools\build-pages-secret.mjs "GAS_WEB_APP_URL.txt" "!SECRET_FILE!"
+  if errorlevel 1 goto :falha
+  call npx --yes wrangler pages secret bulk "!SECRET_FILE!" --project-name zapperim-app
+  set "SECRET_STATUS=!ERRORLEVEL!"
+  del "!SECRET_FILE!" >nul 2>nul
+  if not "!SECRET_STATUS!"=="0" goto :falha
+) else (
+  echo Cole a URL /exec do seu GAS quando o Wrangler pedir o valor.
+  echo Nao digite tokens, senhas nem o ID da planilha aqui.
+  call npx --yes wrangler pages secret put GAS_WEB_APP_URL --project-name zapperim-app
+  if errorlevel 1 goto :falha
+)
 
 call npx --yes wrangler pages deploy dist\cloudflare --project-name zapperim-app --branch main
 if errorlevel 1 goto :falha
