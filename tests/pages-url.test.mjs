@@ -11,6 +11,11 @@ try {
     writeFileSync(file,JSON.stringify(data));
     return spawnSync(process.execPath,['tools/pages-project-url.mjs',file,'zapperim-app'],{encoding:'utf8'});
   };
+  const cli=run([{'Project Name':'zapperim-app','Project Domains':'zapperim-app-real.pages.dev, example.com','Git Provider':'No','Last Modified':'just now'}]);
+  assert.equal(cli.status,0,cli.stderr);
+  assert.match(cli.stdout,/zapperim-app-real.pages.dev/);
+  const found=spawnSync(process.execPath,['tools/pages-project-check.mjs',file,'zapperim-app'],{encoding:'utf8'});
+  assert.equal(found.status,0,found.stderr);
   const project={name:'zapperim-app',subdomain:'zapperim-app-abc.pages.dev',canonical_deployment:{latest_stage:{status:'success'}}};
   const ready=run([project]);
   assert.equal(ready.status,0,ready.stderr);
