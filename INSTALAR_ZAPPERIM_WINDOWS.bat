@@ -77,7 +77,7 @@ echo A URL individual desta versao aparece no resultado do Wrangler acima.
 echo Se aparecer erro 523 logo apos o primeiro deploy,
 echo confira o status da publicacao no painel Cloudflare e tente novamente depois
 echo de o DNS do novo subdominio se propagar. Nao use um dominio presumido.
-echo Resultado esperado: {"api":3,"connected":true,"status":"ready"}
+echo Resultado esperado em /api/health: api 3, revision v3-ufs-local-20260929, connected true, status ready.
 pause
 exit /b 0
 
