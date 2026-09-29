@@ -1,6 +1,6 @@
 # Implantação de teste: Cloudflare Pages + Google Apps Script
 
-O endereço atual `zapperim.pages.dev` continua em produção. Este instalador cria/publica somente o projeto **`zapperim-app`**. O instalador Windows usa Direct Upload via Wrangler, como no exemplo fornecido; essa modalidade não cria integração automática com o GitHub. Atualizações serão feitas executando o `.bat` novamente.
+O endereço atual `zapperim.pages.dev` continua em produção. Este instalador cria/publica somente um projeto novo com nome exclusivo **`zapperim-perim-...`** e guarda esse nome em `PAGES_PROJECT_NAME.txt` na pasta extraída. Mantenha esse arquivo para executar o `.bat` novamente e atualizar o mesmo projeto. O instalador Windows usa Direct Upload via Wrangler; essa modalidade não cria integração automática com o GitHub.
 
 ## 1. Instalar o GAS na sua conta Google
 
@@ -15,8 +15,8 @@ O endereço atual `zapperim.pages.dev` continua em produção. Este instalador c
 ## 2. Publicar pelo instalador Windows
 
 1. Baixe o repositório como ZIP no GitHub e **extraia a pasta inteira**. Mantenha o `.bat`, `tools/`, `functions/` e `dist/` juntos. É necessário ter Node.js LTS no Windows.
-2. Abra [`INSTALAR_ZAPPERIM_WINDOWS.bat`](INSTALAR_ZAPPERIM_WINDOWS.bat). Ele gera os arquivos, abre o login do Wrangler, cria `zapperim-app` se ainda não existir, pergunta o valor da variável `GAS_WEB_APP_URL` e publica a página e a função `/api`.
-3. Se a pasta extraída tiver `GAS_WEB_APP_URL.txt`, o instalador configura essa URL `/exec` sem pedir que você a digite novamente. Sem esse arquivo, cole a URL quando o Wrangler pedir o valor. O instalador não pede senha nem ID da planilha. Ele não publica em `zapperim.pages.dev`.
+2. Abra [`INSTALAR_ZAPPERIM_WINDOWS.bat`](INSTALAR_ZAPPERIM_WINDOWS.bat). Ele gera os arquivos, abre o login do Wrangler, cria um projeto Pages com nome exclusivo se ainda não existir, pergunta o valor da variável `GAS_WEB_APP_URL` e publica a página e a função `/api`. O nome gerado é reutilizado nas próximas execuções nessa mesma pasta.
+3. Se a pasta extraída tiver `GAS_WEB_APP_URL.txt`, o instalador configura essa URL `/exec` sem pedir que você a digite novamente. Sem esse arquivo, cole a URL quando o Wrangler pedir o valor. O instalador não pede senha nem ID da planilha. Ele não publica em `zapperim.pages.dev`. **Se substituir a pasta por uma nova versão do instalador, preserve `PAGES_PROJECT_NAME.txt` para manter o endereço do teste.**
 4. Ao final, o instalador consulta o projeto e imprime o **endereço de produção registrado** e o endereço de `/api/health`. Use esse domínio exato: o subdomínio pode receber um sufixo se `zapperim-app.pages.dev` não estiver disponível. Se surgir erro 523 na página inicial, confira no painel Cloudflare se o deploy de produção foi concluído; no primeiro deploy, aguarde a propagação do DNS e teste em outra rede. Se a página abrir e apenas health não responder `ready`, confira `/exec`, acesso do Web App e autorização do script.
 
 Quem preferir integração GitHub automática pode criar **outro** projeto Pages manualmente com build `npm run build`, output `dist/cloudflare` e a variável `GAS_WEB_APP_URL`. Um projeto iniciado por Direct Upload não pode ser convertido em integração Git posteriormente.
