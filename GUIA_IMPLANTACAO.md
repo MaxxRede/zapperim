@@ -24,7 +24,7 @@ Para **cadastro novo** e pedido em teste, defina as propriedades do script `ZAP_
 
 1. Extraia o pacote completo no Windows, mantendo `INSTALAR_ZAPPERIM_WINDOWS.bat`, `tools/`, `functions/` e `dist/` juntos. É necessário Node.js LTS.
 2. Execute o `.bat`. Ele gera os arquivos, autoriza o Wrangler, cria um projeto Pages de nome exclusivo `zapperim-perim-...`, configura o segredo **`GAS_WEB_APP_URL_V3`** e publica. Se quiser preencher a URL sem digitar, crie `GAS_WEB_APP_URL_V3.txt` na pasta com somente a nova URL `/exec`. O arquivo anterior `GAS_WEB_APP_URL.txt` **não é usado** nesta versão.
-3. Mantenha `PAGES_PROJECT_NAME.txt` para que futuras execuções atualizem o mesmo projeto. Abra o domínio **real** exibido pelo instalador e teste `/api/health`; o esperado é `api:3`, `connected:true`, `status:ready`.
+3. Mantenha `PAGES_PROJECT_NAME.txt` para que futuras execuções atualizem o mesmo projeto. Após `Deployment complete!`, o instalador mostra `https://<nome-do-projeto>.pages.dev/` e o teste `/api/health`. A Cloudflare também mostra a URL individual da implantação no resultado do Wrangler. O esperado em health é `api:3`, `connected:true`, `status:ready`. A lista de projetos da Cloudflare pode demorar a refletir a criação; a consulta de confirmação não interrompe mais uma publicação concluída.
 
 O projeto Pages usa Direct Upload; ele não altera o domínio atual nem sincroniza automaticamente com o GitHub. O código da API `/exec` é público, mas o acesso aos dados é verificado por código enviado ao e-mail do cadastro.
 
