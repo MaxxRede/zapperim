@@ -1,4 +1,4 @@
-import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+import {readFileSync,writeFileSync,mkdirSync,copyFileSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -37,4 +37,7 @@ if(cloudHtml.includes('<?!=')||cloudHtml.includes('google.script.run'))throw Err
 const cloudFile=resolve(root,'dist','cloudflare','index.html');
 mkdirSync(dirname(cloudFile),{recursive:true});
 writeFileSync(cloudFile,cloudHtml);
+const assetsDir=resolve(root,'dist','cloudflare','assets');mkdirSync(assetsDir,{recursive:true});
+copyFileSync(resolve(root,'assets','zappedidos-logo.svg'),resolve(assetsDir,'zappedidos-logo.svg'));
+copyFileSync(resolve(root,'assets','perim-logo.svg'),resolve(assetsDir,'perim-logo.svg'));
 console.log(`${cloudFile}: ${Buffer.byteLength(cloudHtml)} bytes`);
