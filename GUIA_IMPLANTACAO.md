@@ -16,7 +16,7 @@ O endereço atual `zapperim.pages.dev` continua em produção. Este instalador c
 
 1. Baixe o repositório como ZIP no GitHub e **extraia a pasta inteira**. Mantenha o `.bat`, `tools/`, `functions/` e `dist/` juntos. É necessário ter Node.js LTS no Windows.
 2. Abra [`INSTALAR_ZAPPERIM_WINDOWS.bat`](INSTALAR_ZAPPERIM_WINDOWS.bat). Ele gera os arquivos, abre o login do Wrangler, cria `zapperim-app` se ainda não existir, pergunta o valor da variável `GAS_WEB_APP_URL` e publica a página e a função `/api`.
-3. Quando solicitado pelo Wrangler, cole **somente a URL `/exec`** do GAS. O instalador não pede senha nem ID da planilha. Ele não publica em `zapperim.pages.dev`.
+3. Se a pasta extraída tiver `GAS_WEB_APP_URL.txt`, o instalador configura essa URL `/exec` sem pedir que você a digite novamente. Sem esse arquivo, cole a URL quando o Wrangler pedir o valor. O instalador não pede senha nem ID da planilha. Ele não publica em `zapperim.pages.dev`.
 4. Use a URL **exibida pelo Wrangler** ao final da publicação; acrescente `/api/health` e depois abra a tela inicial na mesma URL. O subdomínio pode receber um sufixo se `zapperim-app.pages.dev` não estiver disponível. Se health não responder `ready`, confira `/exec`, acesso do Web App e autorização do script.
 
 Quem preferir integração GitHub automática pode criar **outro** projeto Pages manualmente com build `npm run build`, output `dist/cloudflare` e a variável `GAS_WEB_APP_URL`. Um projeto iniciado por Direct Upload não pode ser convertido em integração Git posteriormente.
