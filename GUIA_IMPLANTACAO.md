@@ -8,7 +8,29 @@ O endereço atual `zapperim.pages.dev` continua em produção. Esta instalação
 2. Copie o conteúdo completo de [`dist/GAS_INSTALAR_PLANILHA.gs`](dist/GAS_INSTALAR_PLANILHA.gs) para um arquivo `.gs` e o de [`dist/GAS_API_ZAPPERIM.gs`](dist/GAS_API_ZAPPERIM.gs) para outro **no mesmo projeto**. Para um projeto independente, execute `node tools/build-target-gas.mjs ID_DA_PLANILHA GAS_INSTALAR_PLANILHA_ALVO.gs` após `npm run build` e use esse arquivo direcionado no lugar do instalador genérico. Remova versões anteriores desses arquivos e a `myFunction` padrão.
 3. Salve e execute `instalarZapperim` no editor. Autorize o acesso à planilha. O Registro de execução traz a **URL da mesma planilha**. Confira que o ID registrado é o da planilha desejada antes de publicar a API.
 4. Confira as sete abas: `usuarios`, `acesso`, `pedidos`, `view_bd`, `financeiro`, `stq`, `imagens`. Os cabeçalhos são idênticos aos de [`gas/Schema.gs`](gas/Schema.gs), inclusive `RESONSAVEL`, `CNPJ/CPF`, `PED. MÍNIMO`, `PRECO VND` e `DTPed`. O instalador preserva abas já preenchidas; se encontrar um cabeçalho divergente ou dados sem cabeçalho, para antes de associar a API à nova planilha.
-5. Publique como **Aplicativo da Web**, execução como você, acesso para qualquer pessoa, e use a URL `/exec`. Ela deve responder `{"api":3,"revision":"v3-ufs-local-20260929","connected":true,"status":"ready"}`. Se editar o GAS depois de publicar, vá a **Implantar → Gerenciar implantações → Editar → Nova versão → Implantar** para atualizar a mesma URL.
+5. Publique como **Aplicativo da Web**, execução como você, acesso para qualquer pessoa, e use a URL `/exec`. Ela deve responder `{"api":3,"revision":"v3-formatos-logos-20260929","connected":true,"status":"ready"}`. Se editar o GAS depois de publicar, vá a **Implantar → Gerenciar implantações → Editar → Nova versão → Implantar** para atualizar a mesma URL.
+
+## Padronização de dados desta revisão
+
+- CNPJ: validado pelos dígitos verificadores e apresentado como `00.000.000/0000-00`.
+- Telefone: fixo `(00) 0000-0000` ou celular `(00) 00000-0000`.
+- CEP: `00000-000`.
+- Campos textuais de cadastro: normalizados em maiúsculas; e-mail permanece normalizado para autenticação.
+- Datas: `dd/MM/yyyy HH:mm:ss`.
+- Valores monetários: padrão brasileiro com `R# Implantação da base v3 para homologação
+
+O endereço atual `zapperim.pages.dev` continua em produção. Esta instalação usa **uma planilha existente** escolhida explicitamente ou a planilha que contém o Apps Script vinculado; não cria outra planilha. O vínculo é registrado na propriedade `ZAP_BASE_V3_ID`, sem usar a propriedade da base anterior.
+
+## 1. Vincular o GAS à planilha existente
+
+1. Abra a planilha de destino e use **Extensões → Apps Script** para criar um projeto vinculado. Um projeto independente também funciona se o arquivo instalador tiver o ID da planilha preenchido em `ZAP_TARGET_SPREADSHEET_ID`.
+2. Copie o conteúdo completo de [`dist/GAS_INSTALAR_PLANILHA.gs`](dist/GAS_INSTALAR_PLANILHA.gs) para um arquivo `.gs` e o de [`dist/GAS_API_ZAPPERIM.gs`](dist/GAS_API_ZAPPERIM.gs) para outro **no mesmo projeto**. Para um projeto independente, execute `node tools/build-target-gas.mjs ID_DA_PLANILHA GAS_INSTALAR_PLANILHA_ALVO.gs` após `npm run build` e use esse arquivo direcionado no lugar do instalador genérico. Remova versões anteriores desses arquivos e a `myFunction` padrão.
+3. Salve e execute `instalarZapperim` no editor. Autorize o acesso à planilha. O Registro de execução traz a **URL da mesma planilha**. Confira que o ID registrado é o da planilha desejada antes de publicar a API.
+4. Confira as sete abas: `usuarios`, `acesso`, `pedidos`, `view_bd`, `financeiro`, `stq`, `imagens`. Os cabeçalhos são idênticos aos de [`gas/Schema.gs`](gas/Schema.gs), inclusive `RESONSAVEL`, `CNPJ/CPF`, `PED. MÍNIMO`, `PRECO VND` e `DTPed`. O instalador preserva abas já preenchidas; se encontrar um cabeçalho divergente ou dados sem cabeçalho, para antes de associar a API à nova planilha.
+5. Publique como **Aplicativo da Web**, execução como você, acesso para qualquer pessoa, e use a URL `/exec`. Ela deve responder `{"api":3,"revision":"v3-formatos-logos-20260929","connected":true,"status":"ready"}`. Se editar o GAS depois de publicar, vá a **Implantar → Gerenciar implantações → Editar → Nova versão → Implantar** para atualizar a mesma URL.
+
+ e duas casas decimais.
+- Cabeçalho visual: ZAPPedidos primeiro e Perim Distribuidora depois.
 
 ## 2. Alimentar a base de teste
 
@@ -24,7 +46,7 @@ Para **cadastro novo** e pedido em teste, defina as propriedades do script `ZAP_
 
 1. Extraia o pacote completo no Windows, mantendo `INSTALAR_ZAPPERIM_WINDOWS.bat`, `tools/`, `functions/` e `dist/` juntos. É necessário Node.js LTS.
 2. Execute o `.bat`. Ele gera os arquivos, autoriza o Wrangler, cria um projeto Pages de nome exclusivo `zapperim-perim-...`, configura o segredo **`GAS_WEB_APP_URL_V3`** e publica. Se quiser preencher a URL sem digitar, crie `GAS_WEB_APP_URL_V3.txt` na pasta com somente a nova URL `/exec`. O arquivo anterior `GAS_WEB_APP_URL.txt` **não é usado** nesta versão.
-3. Mantenha `PAGES_PROJECT_NAME.txt` para que futuras execuções atualizem o mesmo projeto. Após o envio, o instalador consulta o projeto e, se necessário, a publicação de produção na Cloudflare. Mostra somente endereços registrados pela Cloudflare. Confira que um deles abre no navegador antes de acessar `/api/health`; `DNS_PROBE_FINISHED_NXDOMAIN` significa que o domínio ainda não resolve e impede qualquer teste do GAS. Nesse caso, confira o subdomínio no painel **Workers & Pages** da mesma conta e aguarde a propagação do DNS. O esperado em health é `api:3`, `revision:v3-ufs-local-20260929`, `connected:true`, `status:ready`. `gas_outdated` indica que a URL `/exec` ainda aponta para uma versão antiga do Apps Script: substitua os dois arquivos GAS e atualize a implantação existente para **Nova versão**. `not_installed` indica que `instalarZapperim` não vinculou a planilha **no mesmo projeto Apps Script publicado**. `gas_timeout` indica que o GAS não respondeu a tempo. `api_not_configured` indica ausência do segredo `GAS_WEB_APP_URL_V3`; atualize-o executando novamente o instalador Windows e mantendo o nome de projeto. Se a implantação GAS for nova, coloque sua nova URL `/exec` em `GAS_WEB_APP_URL_V3.txt` antes de executar o instalador.
+3. Mantenha `PAGES_PROJECT_NAME.txt` para que futuras execuções atualizem o mesmo projeto. Após o envio, o instalador consulta o projeto e, se necessário, a publicação de produção na Cloudflare. Mostra somente endereços registrados pela Cloudflare. Confira que um deles abre no navegador antes de acessar `/api/health`; `DNS_PROBE_FINISHED_NXDOMAIN` significa que o domínio ainda não resolve e impede qualquer teste do GAS. Nesse caso, confira o subdomínio no painel **Workers & Pages** da mesma conta e aguarde a propagação do DNS. O esperado em health é `api:3`, `revision:v3-formatos-logos-20260929`, `connected:true`, `status:ready`. `gas_outdated` indica que a URL `/exec` ainda aponta para uma versão antiga do Apps Script: substitua os dois arquivos GAS e atualize a implantação existente para **Nova versão**. `not_installed` indica que `instalarZapperim` não vinculou a planilha **no mesmo projeto Apps Script publicado**. `gas_timeout` indica que o GAS não respondeu a tempo. `api_not_configured` indica ausência do segredo `GAS_WEB_APP_URL_V3`; atualize-o executando novamente o instalador Windows e mantendo o nome de projeto. Se a implantação GAS for nova, coloque sua nova URL `/exec` em `GAS_WEB_APP_URL_V3.txt` antes de executar o instalador.
 
 O projeto Pages usa Direct Upload; ele não altera o domínio atual nem sincroniza automaticamente com o GitHub. O código da API `/exec` é público, mas o acesso aos dados é verificado por código enviado ao e-mail do cadastro.
 
