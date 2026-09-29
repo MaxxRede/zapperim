@@ -51,6 +51,8 @@ function instalarZapperim() {
     ]);
     const initial = ss.getSheetByName('Página1') || ss.getSheetByName('Sheet1');
     if (initial && initial.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(initial);
-    return {url:ss.getUrl(),id:ss.getId(),abas:Object.keys(ZAP_SCHEMA),ambiente:'HOMOLOGACAO'};
+    const result={url:ss.getUrl(),id:ss.getId(),abas:Object.keys(ZAP_SCHEMA),ambiente:'HOMOLOGACAO'};
+    Logger.log('Planilha ZAPerim: '+result.url);
+    return result;
   } finally { lock.releaseLock(); }
 }
