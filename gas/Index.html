@@ -3,12 +3,13 @@
 <?!= include_('Styles'); ?></head><body>
 <header class="top"><div class="brandmarks" aria-label="ZAPPedidos e Perim Distribuidora">
   <img class="brand-logo brand-logo-zap" src="/assets/zappedidos-logo.svg" alt="ZAPPedidos">
-  <div class="brand-sep"></div>
   <img class="brand-logo brand-logo-perim" src="/assets/perim-logo.svg" alt="Perim Distribuidora">
 </div><nav id="nav" hidden><button data-page="favoritos">♡ Queridinhos</button><button data-page="catalogo">Catálogo</button><button data-page="pedido">Pedido <span id="badge">0</span></button><button data-page="historico">Meus pedidos</button><button id="logout">Sair</button></nav></header>
 <main>
+  <div id="entryIntro"><p class="tagline">Faça seu pedido rápido e fácil!</p>
+  <div class="seller-welcome"><span class="seller-icon">♧</span><span>👋 Olá! A partir de agora, quem irá te atender é o<br>representante comercial <strong>MÁRCIO GOMES.</strong> Seja<br>bem-vindo(a)!</span></div></div>
   <div id="notice" role="status" aria-live="polite"></div>
-  <section id="entry" class="panel narrow"><h1>Acesse com seu CNPJ</h1><p>Digite os 14 dígitos para começar.</p><form id="cnpjForm"><label>CNPJ<input name="cnpj" inputmode="numeric" required placeholder="00.000.000/0000-00" maxlength="18" autocomplete="off"></label><button class="primary">Entrar</button></form></section>
+  <section id="entry" class="panel narrow"><h1>Acesse com seu CNPJ</h1><p>Digite seu CNPJ para começar</p><form id="cnpjForm"><label>CNPJ<input name="cnpj" inputmode="numeric" required placeholder="00.000.000/0000-00" maxlength="18" autocomplete="off"></label><button class="primary">Entrar</button></form></section>
   <section id="register" class="panel narrow" hidden><h1>Novo cadastro</h1><p>O cadastro ficará pendente de análise comercial.</p><form id="registerForm" class="formgrid">
     <label class="full">Nome ou razão social *<input name="nome" required maxlength="140"></label>
     <label>Telefone com DDD *<input name="telefone" type="tel" required inputmode="tel" maxlength="15" placeholder="(00) 00000-0000"></label><label>E-mail *<input name="email" type="email" required></label>
