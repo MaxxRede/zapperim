@@ -1,7 +1,7 @@
 /** ZAPerim — instale a planilha uma vez; mantenha este arquivo no mesmo projeto da API. */
 
-/* Execute instalarZapperim() em um projeto Apps Script NOVO. */
-const ZAP_SCHEMA = Object.freeze({
+/** Contrato compartilhado: ambos os arquivos GAS gerados podem ser colados no mesmo projeto. */
+var ZAP_SCHEMA = Object.freeze({
   CONFIG: ['CHAVE','VALOR','DESCRICAO'],
   REGRAS_UF: ['UF','ATIVO','PEDIDO_MINIMO_CENTAVOS','LIMITE_NOVO_CENTAVOS','CONDICOES','ATUALIZADO_EM'],
   CLIENTES: ['CNPJ','COD_CLIENTE','RAZAO_SOCIAL','EMAIL','TELEFONE','ENDERECO','CIDADE','UF','CEP','COMPLEMENTO','RESPONSAVEL','CARGO','SELLER_ID','TABELA','CONDICAO','STATUS','ATUALIZADO_EM'],
@@ -14,8 +14,9 @@ const ZAP_SCHEMA = Object.freeze({
   PEDIDO_ITENS: ['PEDIDO_ID','CODIGO','DESCRICAO','QTDE','PRECO_UNIT_CENTAVOS','TOTAL_CENTAVOS','ESTOQUE_NA_COMPRA'],
   LOG_IMPORTACAO: ['EXECUCAO_ID','INICIO','FIM','FONTE','ABA','REGISTROS','STATUS','ERRO']
 });
-const ZAP_UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
+var ZAP_UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
+/* Execute instalarZapperim() em um projeto Apps Script NOVO. */
 function instalarZapperim() {
   const active=Session.getActiveUser().getEmail(), owner=Session.getEffectiveUser().getEmail();
   if(!active || !owner || active.toLowerCase()!==owner.toLowerCase())
