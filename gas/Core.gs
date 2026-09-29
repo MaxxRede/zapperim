@@ -1,8 +1,7 @@
 function doGet() {
-  return HtmlService.createTemplateFromFile('Index').evaluate().setTitle('ZAPerim • Pedidos')
-    .addMetaTag('viewport','width=device-width, initial-scale=1');
+  const installed=!!PropertiesService.getScriptProperties().getProperty('ZAP_SPREADSHEET_ID');
+  return json_({api:2,connected:installed,status:installed?'ready':'not_installed'});
 }
-function include_(name) { return HtmlService.createHtmlOutputFromFile(name).getContent(); }
 function ss_() {
   const id=PropertiesService.getScriptProperties().getProperty('ZAP_SPREADSHEET_ID');
   if (!id) throw new Error('Execute instalarZapperim() antes de publicar.');
