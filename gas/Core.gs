@@ -1,9 +1,9 @@
 function doGet() {
-  const installed=!!PropertiesService.getScriptProperties().getProperty('ZAP_SPREADSHEET_ID');
-  return json_({api:2,connected:installed,status:installed?'ready':'not_installed'});
+  const installed=!!PropertiesService.getScriptProperties().getProperty('ZAP_BASE_V3_ID');
+  return json_({api:3,connected:installed,status:installed?'ready':'not_installed'});
 }
 function ss_() {
-  const id=PropertiesService.getScriptProperties().getProperty('ZAP_SPREADSHEET_ID');
+  const id=PropertiesService.getScriptProperties().getProperty('ZAP_BASE_V3_ID');
   if (!id) throw new Error('Execute instalarZapperim() antes de publicar.');
   return SpreadsheetApp.openById(id);
 }
@@ -15,7 +15,7 @@ function records_(name) {
 }
 function append_(name,row) { tab_(name).appendRow(ZAP_SCHEMA[name].map(k=>row[k] == null ? '' : safeCell_(row[k]))); }
 function safeCell_(value) { return typeof value==='string' && /^[=+\-@]/.test(value) ? "'"+value : value; }
-function config_(key) { const r=records_('CONFIG').find(x=>x.CHAVE===key); return r ? String(r.VALOR).trim() : ''; }
+function config_(key) { return String(PropertiesService.getScriptProperties().getProperty('ZAP_'+key+'_V3')||'').trim(); }
 function now_() { return new Date().toISOString(); }
 function digits_(s) { return String(s||'').replace(/\D/g,''); }
 function clean_(value,max) { return String(value||'').trim().slice(0,max); }
@@ -26,15 +26,29 @@ function uuid_() { return Utilities.getUuid(); }
 function requireInt_(v,min,max,label) { const x=Number(v); if(!Number.isSafeInteger(x)||x<min||x>max) throw new Error(label+' inválido.'); return x; }
 function limited_(text,max,label) { const s=clean_(text,max+1); if(s.length>max) throw new Error(label+' excede '+max+' caracteres.'); return s; }
 function amount_(v,label) { return requireInt_(v,0,100000000000,label); }
-function enabledUf_(uf) {
-  const rule=records_('REGRAS_UF').find(r=>r.UF===uf);
-  if(rule) return String(rule.ATIVO).toUpperCase()==='SIM';
-  const all=config_('UFS_ATENDIDAS'); return all==='*' || all.split(',').map(s=>s.trim().toUpperCase()).includes(uf);
+function moneyCents_(v,label) {
+  if(typeof v==='number' && Number.isFinite(v))return amount_(Math.round(v*100),label);
+  let s=String(v==null?'':v).replace(/R\$|\s/g,'');
+  if(!s)throw new Error(label+' não configurado.');
+  if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');
+  if(!/^\d+(\.\d{1,2})?$/.test(s))throw new Error(label+' inválido: '+v);
+  return amount_(Math.round(Number(s)*100),label);
 }
-function rule_(uf,key,globalKey) {
-  const local=records_('REGRAS_UF').find(r=>r.UF===uf);
-  const value=local&&local[key]!=='' ? local[key] : config_(globalKey);
-  if(value==='') throw new Error('Regra '+globalKey+' ainda não configurada.');
-  return amount_(value,globalKey);
+function ufEndereco_(text) {
+  const s=String(text||'').toUpperCase().trim().replace(/(?:[,\s]+)?\d{5}-?\d{3}\s*$/,'').replace(/[\s,;]+$/,'');
+  const match=s.match(/(?:\bUF\s*[:=-]\s*|[-,/\s])([A-Z]{2})\s*$/);
+  if(!match || !ZAP_UFS.includes(match[1]))throw new Error('UF não identificada no final do ENDEREÇO do cliente. Informe a sigla (ex.: AVARÉ - SP).');
+  return match[1];
+}
+function enabledUf_(uf) {
+  const all=config_('UFS_ATENDIDAS'); return !all||all==='*'||all.split(',').map(s=>s.trim().toUpperCase()).includes(uf);
+}
+function rule_(uf,key,globalKey,profile) {
+  if(key==='PEDIDO_MINIMO_CENTAVOS') {
+    if(profile && profile.tipo==='EXISTENTE')return moneyCents_(profile.minimo,'PED. MÍNIMO');
+  }
+  const value=config_(globalKey);
+  if(value==='')throw new Error('Regra '+globalKey+' ainda não configurada nas propriedades do script.');
+  return amount_(Number(value),globalKey);
 }
 function publicError_(e) { throw new Error(e && e.message ? e.message : 'Não foi possível concluir a operação.'); }
