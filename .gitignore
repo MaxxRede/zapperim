@@ -4,4 +4,5 @@ node_modules/
 .env*
 *.log
 GAS_WEB_APP_URL.txt
+GAS_WEB_APP_URL_V3.txt
 PAGES_PROJECT_NAME.txt
