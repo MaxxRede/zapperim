@@ -6,4 +6,4 @@ if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/\s]+\/exec$/.test(url)) {
   console.error('URL GAS inválida: informe o endereço /exec do aplicativo Web.');
   process.exit(2);
 }
-writeFileSync(output,JSON.stringify({GAS_WEB_APP_URL:url}));
+writeFileSync(output,JSON.stringify({GAS_WEB_APP_URL_V3:url}));
