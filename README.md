@@ -2,7 +2,7 @@
 
 Esta é a primeira versão das telas HTML e da base Google Sheets do novo sistema de pedidos. O site atual em `zapperim.pages.dev` e as planilhas antigas não são alterados por este código.
 
-**Instalação:** siga [`GUIA_IMPLANTACAO.md`](GUIA_IMPLANTACAO.md). O [`INSTALAR_ZAPPERIM_WINDOWS.bat`](INSTALAR_ZAPPERIM_WINDOWS.bat) publica em `zapperim-app`, separado do site atual. `npm run build` gera `dist/cloudflare/index.html` e os GAS separados `dist/GAS_INSTALAR_PLANILHA.gs` e `dist/GAS_API_ZAPPERIM.gs`. `functions/` contém o proxy `/api` e o diagnóstico `/api/health`.
+**Instalação:** siga [`GUIA_IMPLANTACAO.md`](GUIA_IMPLANTACAO.md). O [`INSTALAR_ZAPPERIM_WINDOWS.bat`](INSTALAR_ZAPPERIM_WINDOWS.bat) publica em um projeto Pages exclusivo, separado do site atual. `npm run build` gera `dist/cloudflare/index.html` e os GAS separados `dist/GAS_INSTALAR_PLANILHA.gs` e `dist/GAS_API_ZAPPERIM.gs`. `functions/` contém o proxy `/api` e o diagnóstico `/api/health`.
 
 ## O que está implementado
 
@@ -17,11 +17,11 @@ Esta é a primeira versão das telas HTML e da base Google Sheets do novo sistem
 2. Execute `instalarZapperim()` como administrador. Anote a URL retornada e confira as abas da nova planilha. Se executar novamente, ela reutiliza o ID guardado em propriedades do script e não apaga linhas.
 3. Preencha `REGRAS_UF` se quiser limitar UFs. Na aba `CONFIG`, informe `PEDIDO_MINIMO_CENTAVOS` e `LIMITE_NOVO_CENTAVOS` com números inteiros; avalie a regra comercial antes de liberar testes de fechamento. O valor `35000` representa R$ 350,00.
 4. Cadastre dados de homologação em `PRODUTOS` (`ATIVO=SIM`), `PRECOS` (`TABELA=NOVO` ou tabela do cliente, `PRECO_CENTAVOS` inteiro), `ESTOQUE` (por código) e, se desejar, `RANKING`. Em `CLIENTES`, use CNPJ como texto com 14 dígitos, e-mail real do teste, `STATUS=ATIVO`, `TABELA`, `CONDICAO`, `UF` e telefone.
-5. Publique **uma implantação de teste** como aplicativo Web, executando como proprietário do script e com acesso a qualquer pessoa para o proxy Cloudflare alcançar o `doPost`. O aplicativo envia códigos por MailApp, portanto a conta do projeto deverá autorizar esse escopo. Use o `.bat` para publicar o frontend no projeto separado `zapperim-app`.
+5. Publique **uma implantação de teste** como aplicativo Web, executando como proprietário do script e com acesso a qualquer pessoa para o proxy Cloudflare alcançar o `doPost`. O aplicativo envia códigos por MailApp, portanto a conta do projeto deverá autorizar esse escopo. Use o `.bat` para publicar o frontend no projeto Pages separado.
 
 ## Colunas da planilha
 
-O contrato completo está em `gas/Setup.gs` (objeto `ZAP_SCHEMA`). Cada linha 1 recebe os cabeçalhos na ordem exata. Valores com sufixo `_CENTAVOS` são inteiros; `CNPJ`, `CODIGO`, `EAN`, `CEP` e IDs são texto. `REGRAS_UF` permite SP, PR, SC e as demais UFs; `UFS_ATENDIDAS=*` aceita todas por padrão.
+O contrato completo está em `gas/Schema.gs` (objeto `ZAP_SCHEMA`). Cada linha 1 recebe os cabeçalhos na ordem exata. Valores com sufixo `_CENTAVOS` são inteiros; `CNPJ`, `CODIGO`, `EAN`, `CEP` e IDs são texto. `REGRAS_UF` permite SP, PR, SC e as demais UFs; `UFS_ATENDIDAS=*` aceita todas por padrão.
 
 | Aba | Uso |
 | --- | --- |
