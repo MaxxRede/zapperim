@@ -70,13 +70,23 @@ call npx --yes wrangler pages deploy dist\cloudflare --project-name "%PROJECT_NA
 if errorlevel 1 goto :falha
 
 echo.
-echo Publicacao concluida no projeto %PROJECT_NAME%.
-echo Endereco do site: https://%PROJECT_NAME%.pages.dev/
-echo Teste da API: https://%PROJECT_NAME%.pages.dev/api/health
-echo A URL individual desta versao aparece no resultado do Wrangler acima.
-echo Se aparecer erro 523 logo apos o primeiro deploy,
-echo confira o status da publicacao no painel Cloudflare e tente novamente depois
-echo de o DNS do novo subdominio se propagar. Nao use um dominio presumido.
+echo Envio concluido. Conferindo o dominio de producao registrado na Cloudflare...
+set "PROJECT_LIST=%TEMP%\zapperim-pages-%RANDOM%.json"
+call npx --yes wrangler pages project list --json > "%PROJECT_LIST%"
+if errorlevel 1 (
+  del "%PROJECT_LIST%" >nul 2>nul
+  echo A consulta ao projeto falhou. Confira no painel Cloudflare se a publicacao foi concluida.
+  echo A URL individual desta versao aparece no resultado do Wrangler acima.
+  goto :falha
+)
+node tools\pages-project-url.mjs "%PROJECT_LIST%" "%PROJECT_NAME%"
+set "URL_STATUS=!ERRORLEVEL!"
+del "%PROJECT_LIST%" >nul 2>nul
+if not "!URL_STATUS!"=="0" (
+  echo O envio ocorreu, mas o dominio de producao ainda nao foi confirmado.
+  echo Confira no painel Cloudflare se o projeto foi publicado antes de testar /api/health.
+  goto :falha
+)
 echo Resultado esperado em /api/health: api 3, revision v3-ufs-local-20260929, connected true, status ready.
 pause
 exit /b 0
