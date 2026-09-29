@@ -1,8 +1,10 @@
 # ZAPerim — base v3 independente
 
-Reconstrução do sistema de pedidos com HTML leve, Cloudflare Pages, Apps Script e Google Sheets. O site de produção `zapperim.pages.dev` e as planilhas anteriores não são alterados por este projeto.
+Reconstrução do sistema de pedidos com HTML leve, Cloudflare Pages, Apps Script e Google Sheets. O site de produção `zapperim.pages.dev` não é alterado. A planilha escolhida recebe apenas as abas ausentes; abas existentes com cabeçalhos corretos são preservadas.
 
 O contrato das **sete abas exatas** está em [`gas/Schema.gs`](gas/Schema.gs). `npm test` gera e confere os arquivos prontos em `dist/`: instalador da planilha, API e frontend. Siga o [`GUIA_IMPLANTACAO.md`](GUIA_IMPLANTACAO.md) para instalar em ambiente de teste.
+
+O instalador GAS trabalha em uma **planilha existente**, pelo ID informado em `ZAP_TARGET_SPREADSHEET_ID` ou pelo vínculo com a planilha aberta no editor. Ele não cria outra planilha e não reescreve abas preenchidas com cabeçalhos corretos. A API abre o mesmo ID registrado em `ZAP_BASE_V3_ID`.
 
 O instalador Windows considera a publicação concluída quando `wrangler pages deploy` termina com sucesso e mostra o domínio do projeto exclusivo. A consulta posterior à lista de projetos não bloqueia o resultado, pois a lista pode demorar a refletir uma criação recente.
 
