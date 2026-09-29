@@ -1,6 +1,10 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const installer=fs.readFileSync(__dirname+'/../dist/GAS_INSTALAR_PLANILHA.gs','utf8');
 const api=fs.readFileSync(__dirname+'/../dist/GAS_API_ZAPPERIM.gs','utf8');
+const standalone=vm.createContext({});
+vm.runInContext(api,standalone,{filename:'GAS_API_ZAPPERIM.gs'});
+assert.equal(vm.runInContext("uf_('SP')",standalone),'SP');
+assert.equal(vm.runInContext('ZAP_SCHEMA.CLIENTES[0]',standalone),'CNPJ');
 const context=vm.createContext({PropertiesService:{getScriptProperties:()=>({getProperty:()=> 'sheet-id'})}});
 vm.runInContext(installer+'\n'+api,context,{filename:'GAS_API_ZAPPERIM.gs'});
 context.ContentService={MimeType:{JSON:'application/json'},createTextOutput:value=>({value,setMimeType(){return this;}})};
