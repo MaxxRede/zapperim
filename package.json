@@ -1,0 +1,9 @@
+{
+  "name": "zapperim-cloudflare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build-installer.mjs",
+    "test": "npm run build && node tests/setup.test.cjs && node tests/orders.test.cjs && node tests/bundle.test.cjs && node tests/cloudflare.test.mjs"
+  }
+}
