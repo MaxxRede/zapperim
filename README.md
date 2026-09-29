@@ -2,6 +2,8 @@
 
 Esta é a primeira versão das telas HTML e da base Google Sheets do novo sistema de pedidos. O site atual em `zapperim.pages.dev` e as planilhas antigas não são alterados por este código.
 
+**Implantação na Cloudflare Pages:** siga [`GUIA_IMPLANTACAO.md`](GUIA_IMPLANTACAO.md). O comando `npm run build` gera `dist/cloudflare/index.html` e o arquivo único `dist/Code.gs`. O diretório `functions/` contém o proxy `/api` para o Web App GAS. Faça testes em um projeto Pages separado do site atual.
+
 ## O que está implementado
 
 - Instalador `instalarZapperim()` que cria **uma planilha nova** se ainda não existir, grava seu ID nas propriedades do projeto Apps Script e verifica o cabeçalho de cada aba ao executar novamente.
