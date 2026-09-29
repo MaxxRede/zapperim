@@ -1,6 +1,6 @@
 function doGet() {
   const installed=!!PropertiesService.getScriptProperties().getProperty('ZAP_BASE_V3_ID');
-  return json_({api:3,connected:installed,status:installed?'ready':'not_installed'});
+  return json_({api:3,revision:'v3-ufs-local-20260929',connected:installed,status:installed?'ready':'not_installed'});
 }
 function ss_() {
   const id=PropertiesService.getScriptProperties().getProperty('ZAP_BASE_V3_ID');
@@ -21,7 +21,8 @@ function digits_(s) { return String(s||'').replace(/\D/g,''); }
 function clean_(value,max) { return String(value||'').trim().slice(0,max); }
 function email_(v) { const s=clean_(v,180).toLowerCase(); if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) throw new Error('E-mail inválido.'); return s; }
 function cnpj_(v) { const s=digits_(v); if(!/^\d{14}$/.test(s)) throw new Error('Informe um CNPJ de 14 dígitos.'); return s; }
-function uf_(v) { const s=clean_(v,2).toUpperCase(); if(!ZAP_UFS.includes(s)) throw new Error('UF inválida.'); return s; }
+function validUf_(s) { return 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ').includes(s); }
+function uf_(v) { const s=clean_(v,2).toUpperCase(); if(!validUf_(s)) throw new Error('UF inválida.'); return s; }
 function uuid_() { return Utilities.getUuid(); }
 function requireInt_(v,min,max,label) { const x=Number(v); if(!Number.isSafeInteger(x)||x<min||x>max) throw new Error(label+' inválido.'); return x; }
 function limited_(text,max,label) { const s=clean_(text,max+1); if(s.length>max) throw new Error(label+' excede '+max+' caracteres.'); return s; }
@@ -37,7 +38,7 @@ function moneyCents_(v,label) {
 function ufEndereco_(text) {
   const s=String(text||'').toUpperCase().trim().replace(/(?:[,\s]+)?\d{5}-?\d{3}\s*$/,'').replace(/[\s,;]+$/,'');
   const match=s.match(/(?:\bUF\s*[:=-]\s*|[-,/\s])([A-Z]{2})\s*$/);
-  if(!match || !ZAP_UFS.includes(match[1]))throw new Error('UF não identificada no final do ENDEREÇO do cliente. Informe a sigla (ex.: AVARÉ - SP).');
+  if(!match || !validUf_(match[1]))throw new Error('UF não identificada no final do ENDEREÇO do cliente. Informe a sigla (ex.: AVARÉ - SP).');
   return match[1];
 }
 function enabledUf_(uf) {
