@@ -1,6 +1,6 @@
 /** Proxy na Cloudflare Pages: evita CORS do Web App GAS e não expõe a URL de implantação. */
 export async function onRequestPost({request,env}) {
-  const url=env.GAS_WEB_APP_URL;
+  const url=env.GAS_WEB_APP_URL_V3;
   if(!url||!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url))
     return Response.json({ok:false,error:'API ainda não configurada.'},{status:503});
   const type=request.headers.get('content-type')||'';
