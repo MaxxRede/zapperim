@@ -1,4 +1,15 @@
 /** Proxy na Cloudflare Pages: evita CORS do Web App GAS e não expõe a URL de implantação. */
+let checkedGas={url:'',until:0};
+async function ensureGasV3(url) {
+  if(checkedGas.url===url && checkedGas.until>Date.now())return;
+  const response=await fetch(url,{redirect:'follow',signal:AbortSignal.timeout(15000)});
+  let health;
+  try {health=await response.json();}
+  catch(_){throw Error('O Web App GAS não respondeu JSON. Confira a URL /exec e as permissões da implantação.');}
+  if(!response.ok||health.api!==3||health.revision!=='v3-ufs-local-20260929'||health.connected!==true)
+    throw Error('A URL configurada aponta para uma versão antiga ou não instalada do GAS. Publique uma nova versão e confira /api/health.');
+  checkedGas={url,until:Date.now()+60000};
+}
 export async function onRequestPost({request,env}) {
   const url=env.GAS_WEB_APP_URL_V3;
   if(!url||!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url))
@@ -12,6 +23,7 @@ export async function onRequestPost({request,env}) {
   try {body=JSON.parse(raw);}catch(_){return Response.json({ok:false,error:'JSON inválido.'},{status:400});}
   if(!body||typeof body.action!=='string'||!Array.isArray(body.args))
     return Response.json({ok:false,error:'Ação inválida.'},{status:400});
+  try {await ensureGasV3(url);}catch(error){return Response.json({ok:false,error:error.message||'Não foi possível validar a versão do GAS.'},{status:503});}
   try {
     const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:raw,redirect:'follow',signal:AbortSignal.timeout(30000)});
     const result=await response.text();
