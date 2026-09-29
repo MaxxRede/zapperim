@@ -13,7 +13,7 @@ if(html.includes('<?!='))throw Error('Template HTML não resolvido.');
 
 const installer=[
   '/** ZAPerim — instale a planilha uma vez; mantenha este arquivo no mesmo projeto da API. */',
-  read('Setup.gs'),''].join('\n\n');
+  read('Schema.gs'),read('Setup.gs'),''].join('\n\n');
 const installerFile=resolve(root,'dist','GAS_INSTALAR_PLANILHA.gs');
 mkdirSync(dirname(installerFile),{recursive:true});
 writeFileSync(installerFile,installer);
@@ -21,7 +21,7 @@ console.log(`${installerFile}: ${Buffer.byteLength(installer)} bytes`);
 
 const api=[
   '/** ZAPerim — API do Web App para Cloudflare Pages. Requer GAS_INSTALAR_PLANILHA.gs no mesmo projeto. */',
-  ...['Core.gs','Auth.gs','Catalog.gs','Orders.gs','Api.gs'].map(read),''].join('\n\n');
+  ...['Schema.gs','Core.gs','Auth.gs','Catalog.gs','Orders.gs','Api.gs'].map(read),''].join('\n\n');
 const apiFile=resolve(root,'dist','GAS_API_ZAPPERIM.gs');
 writeFileSync(apiFile,api);
 console.log(`${apiFile}: ${Buffer.byteLength(api)} bytes`);
