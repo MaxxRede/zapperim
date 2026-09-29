@@ -70,22 +70,11 @@ call npx --yes wrangler pages deploy dist\cloudflare --project-name "%PROJECT_NA
 if errorlevel 1 goto :falha
 
 echo.
-echo Consultando o endereco real do projeto publicado...
-set "PROJECT_LIST=%TEMP%\zapperim-pages-%RANDOM%.json"
-call npx --yes wrangler pages project list --json > "%PROJECT_LIST%"
-if errorlevel 1 (
-  del "%PROJECT_LIST%" >nul 2>nul
-  echo O deploy terminou, mas nao foi possivel consultar o dominio.
-  echo Confira a URL exibida pelo Wrangler acima e o status no painel Cloudflare.
-  goto :falha
-)
-node tools\pages-project-url.mjs "%PROJECT_LIST%" "%PROJECT_NAME%"
-set "URL_STATUS=%ERRORLEVEL%"
-del "%PROJECT_LIST%" >nul 2>nul
-if not "%URL_STATUS%"=="0" goto :falha
-
-echo.
-echo Abra os enderecos acima. Se aparecer erro 523 logo apos o primeiro deploy,
+echo Publicacao concluida no projeto %PROJECT_NAME%.
+echo Endereco do site: https://%PROJECT_NAME%.pages.dev/
+echo Teste da API: https://%PROJECT_NAME%.pages.dev/api/health
+echo A URL individual desta versao aparece no resultado do Wrangler acima.
+echo Se aparecer erro 523 logo apos o primeiro deploy,
 echo confira o status da publicacao no painel Cloudflare e tente novamente depois
 echo de o DNS do novo subdominio se propagar. Nao use um dominio presumido.
 echo Resultado esperado: {"api":3,"connected":true,"status":"ready"}
