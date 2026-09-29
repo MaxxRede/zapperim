@@ -5,10 +5,12 @@ O endereço atual `zapperim.pages.dev` continua em produção. Este instalador c
 ## 1. Instalar o GAS na sua conta Google
 
 1. Abra um **projeto Apps Script novo** em [script.google.com](https://script.google.com/). Use uma conta que pode criar planilhas e enviar e-mails.
-2. Crie **dois arquivos de script no mesmo projeto**: `GAS_INSTALAR_PLANILHA.gs` com o conteúdo de [`dist/GAS_INSTALAR_PLANILHA.gs`](dist/GAS_INSTALAR_PLANILHA.gs) e `GAS_API_ZAPPERIM.gs` com o conteúdo de [`dist/GAS_API_ZAPPERIM.gs`](dist/GAS_API_ZAPPERIM.gs). Os arquivos em `gas/` são o código modular de origem; os de `dist/` já vêm prontos para colar.
+2. Crie **dois arquivos de script no mesmo projeto**: `GAS_INSTALAR_PLANILHA.gs` com o conteúdo de [`dist/GAS_INSTALAR_PLANILHA.gs`](dist/GAS_INSTALAR_PLANILHA.gs) e `GAS_API_ZAPPERIM.gs` com o conteúdo de [`dist/GAS_API_ZAPPERIM.gs`](dist/GAS_API_ZAPPERIM.gs). Substitua o conteúdo anterior de ambos, sem criar arquivos duplicados. Os arquivos em `gas/` são o código modular de origem; os de `dist/` já vêm prontos para colar. Cada um contém as definições compartilhadas `ZAP_SCHEMA` e `ZAP_UFS`, evitando a falha `ZAP_UFS is not defined`.
 3. Remova a `myFunction` padrão se houver. Salve, selecione `instalarZapperim` e clique em **Executar**. Autorize a criação da planilha e o envio de códigos por e-mail para o projeto.
 4. No **Registro de execução**, copie a URL da nova planilha. Uma planilha chamada **ZAPerim - Base de homologação** será criada. O ID fica nas propriedades do script como `ZAP_SPREADSHEET_ID`; novas execuções reutilizam a mesma planilha e não apagam dados.
 5. Publique como **Aplicativo da Web**, execute como **você** e configure o acesso para **qualquer pessoa** (necessário para a função Cloudflare chegar à API). Copie a URL terminada em `/exec`. Ao abrir essa URL no navegador, o GAS deve responder `{"api":2,"connected":true,"status":"ready"}`. A URL `/dev` não é adequada para a Cloudflare.
+
+Se o Apps Script já estiver implantado, substitua os dois arquivos `.gs`, salve e vá a **Implantar → Gerenciar implantações → Editar → Nova versão → Implantar**. A URL `/exec` mantém a implantação, mas só passa a executar o código corrigido após criar essa nova versão. Execute `instalarZapperim` novamente apenas se a planilha ainda não foi criada; essa função reutiliza a planilha registrada e preserva as linhas existentes.
 
 **Atenção:** o GAS é uma API pública com verificação de acesso por código enviado ao e-mail registrado. A planilha contém dados comerciais; use apenas dados de teste até revisar permissões, limites de envio, fluxos de erro e regras de negócio. O código não contém IDs de planilhas ou credenciais.
 
