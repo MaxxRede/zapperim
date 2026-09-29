@@ -50,10 +50,10 @@ if "%PROJECT_STATUS%"=="1" (
 )
 
 echo.
-if exist "GAS_WEB_APP_URL.txt" (
-  echo Configurando a URL do GAS a partir de GAS_WEB_APP_URL.txt.
+if exist "GAS_WEB_APP_URL_V3.txt" (
+  echo Configurando a URL da nova API a partir de GAS_WEB_APP_URL_V3.txt.
   set "SECRET_FILE=%TEMP%\zapperim-secret-%RANDOM%.json"
-  call node tools\build-pages-secret.mjs "GAS_WEB_APP_URL.txt" "!SECRET_FILE!"
+  call node tools\build-pages-secret.mjs "GAS_WEB_APP_URL_V3.txt" "!SECRET_FILE!"
   if errorlevel 1 goto :falha
   call npx --yes wrangler pages secret bulk "!SECRET_FILE!" --project-name "%PROJECT_NAME%"
   set "SECRET_STATUS=!ERRORLEVEL!"
@@ -62,7 +62,7 @@ if exist "GAS_WEB_APP_URL.txt" (
 ) else (
   echo Cole a URL /exec do seu GAS quando o Wrangler pedir o valor.
   echo Nao digite tokens, senhas nem o ID da planilha aqui.
-  call npx --yes wrangler pages secret put GAS_WEB_APP_URL --project-name "%PROJECT_NAME%"
+  call npx --yes wrangler pages secret put GAS_WEB_APP_URL_V3 --project-name "%PROJECT_NAME%"
   if errorlevel 1 goto :falha
 )
 
@@ -88,7 +88,7 @@ echo.
 echo Abra os enderecos acima. Se aparecer erro 523 logo apos o primeiro deploy,
 echo confira o status da publicacao no painel Cloudflare e tente novamente depois
 echo de o DNS do novo subdominio se propagar. Nao use um dominio presumido.
-echo Resultado esperado: {"api":2,"connected":true,"status":"ready"}
+echo Resultado esperado: {"api":3,"connected":true,"status":"ready"}
 pause
 exit /b 0
 
