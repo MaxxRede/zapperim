@@ -75,19 +75,33 @@ set "PROJECT_LIST=%TEMP%\zapperim-pages-%RANDOM%.json"
 call npx --yes wrangler pages project list --json > "%PROJECT_LIST%"
 if errorlevel 1 (
   del "%PROJECT_LIST%" >nul 2>nul
-  echo A consulta ao projeto falhou. Confira no painel Cloudflare se a publicacao foi concluida.
-  echo A URL individual desta versao aparece no resultado do Wrangler acima.
-  goto :falha
+  echo A lista de projetos nao respondeu. Conferindo a publicacao diretamente...
+  goto :conferir_publicacao
 )
 node tools\pages-project-url.mjs "%PROJECT_LIST%" "%PROJECT_NAME%"
 set "URL_STATUS=!ERRORLEVEL!"
 del "%PROJECT_LIST%" >nul 2>nul
 if not "!URL_STATUS!"=="0" (
-  echo O envio ocorreu, mas o dominio de producao ainda nao foi confirmado.
-  echo Confira no painel Cloudflare se o projeto foi publicado antes de testar /api/health.
-  goto :falha
+  echo A lista de projetos nao confirmou o dominio. Conferindo a publicacao diretamente...
+  goto :conferir_publicacao
 )
 echo Resultado esperado em /api/health: api 3, revision v3-ufs-local-20260929, connected true, status ready.
+pause
+exit /b 0
+
+:conferir_publicacao
+set "DEPLOYMENT_LIST=%TEMP%\zapperim-deployments-%RANDOM%.json"
+call npx --yes wrangler pages deployment list --project-name "%PROJECT_NAME%" --environment production --json > "%DEPLOYMENT_LIST%"
+if errorlevel 1 (
+  del "%DEPLOYMENT_LIST%" >nul 2>nul
+  echo A Cloudflare nao confirmou a publicacao. Confira a conta selecionada no painel Workers e Pages.
+  goto :falha
+)
+node tools\pages-deployment-url.mjs "%DEPLOYMENT_LIST%"
+set "DEPLOYMENT_STATUS=!ERRORLEVEL!"
+del "%DEPLOYMENT_LIST%" >nul 2>nul
+if not "!DEPLOYMENT_STATUS!"=="0" goto :falha
+echo Publicacao localizada. Se o endereco mostrar DNS_PROBE_FINISHED_NXDOMAIN, confira o subdominio no painel Cloudflare e aguarde a propagacao do DNS.
 pause
 exit /b 0
 
