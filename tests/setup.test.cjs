@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
-const code=fs.readFileSync(__dirname+'/../gas/Setup.gs','utf8');
+const code=fs.readFileSync(__dirname+'/../dist/GAS_INSTALAR_PLANILHA.gs','utf8');
 const sheets=new Map(), props=new Map();let creates=0;
 function sheet(name){const row=[];let dataRows=0;return {name,row,getRange(r,_c,_nr,nc){const range={getValues:()=>[Array.from({length:nc},(_,i)=>row[i]||'')],setValues:values=>{if(r===1)row.splice(0,row.length,...values[0]);else dataRows=values.length;return range;},setBackground:()=>range,setFontColor:()=>range,setFontWeight:()=>range,setNumberFormat:()=>range};return range;},getMaxRows:()=>20,getLastRow:()=>dataRows?dataRows+1:row.length?1:0,setFrozenRows(){}};}
 const spreadsheet={getId:()=> 'sheet-test',getUrl:()=> 'https://docs.google.com/spreadsheets/d/sheet-test',getSheetByName:n=>sheets.get(n),insertSheet:n=>{const s=sheet(n);sheets.set(n,s);return s;},getSheets:()=>[...sheets.values()],deleteSheet:s=>sheets.delete(s.name)};
