@@ -28,10 +28,18 @@ try {
   globalThis.fetch=async()=>new Response(JSON.stringify({api:2,connected:true,status:'ready'}),{status:200});
   const stale=await onRequestGet({env:{GAS_WEB_APP_URL_V3:url}});
   assert.equal(stale.status,503);
-  assert.equal((await stale.json()).status,'gas_outdated');
+  assert.deepEqual(await stale.json(),{api:3,connected:false,status:'gas_outdated',receivedApi:2,receivedRevision:null});
   const staleRequest=new Request('https://zapperim.pages.dev/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'identificarCnpj',args:['99999999000199']})});
   const stalePost=await onRequestPost({request:staleRequest,env:{GAS_WEB_APP_URL_V3:'https://script.google.com/macros/s/OLD/exec'}});
   assert.equal(stalePost.status,503);
-  assert.match((await stalePost.json()).error,/versão antiga/);
+  assert.match((await stalePost.json()).error,/desatualizada/);
+  globalThis.fetch=async()=>new Response(JSON.stringify({api:3,revision:'v3-ufs-local-20260929',connected:false,status:'not_installed'}),{status:200});
+  const uninstalled=await onRequestGet({env:{GAS_WEB_APP_URL_V3:url}});
+  assert.equal(uninstalled.status,503);
+  assert.equal((await uninstalled.json()).status,'not_installed');
+  const uninstalledRequest=new Request('https://zapperim.pages.dev/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'identificarCnpj',args:['99999999000199']})});
+  const uninstalledPost=await onRequestPost({request:uninstalledRequest,env:{GAS_WEB_APP_URL_V3:'https://script.google.com/macros/s/NOT_INSTALLED/exec'}});
+  assert.equal(uninstalledPost.status,503);
+  assert.match((await uninstalledPost.json()).error,/instalarZapperim/);
 } finally {globalThis.fetch=originalFetch;}
 console.log('Cloudflare: frontend e proxy GAS validados.');
