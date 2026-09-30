@@ -92,12 +92,20 @@ function clientFor_(cnpj) {
 function pendingFor_(cnpj) {
   return accessFor_(cnpj).find(r=>accessData_(r).tipo==='PENDENTE');
 }
+function clientEmail_(row) {
+  if(!row)return '';
+  let email=String(row['E-MAIL']||row.EMAIL||row['E-mail']||'').trim().toLowerCase();
+  if(!email && row._ROW) {
+    email=String(tab_('view_bd').getRange(Number(row._ROW),16).getDisplayValue()||'').trim().toLowerCase();
+  }
+  return email;
+}
 function identificarCnpj(cnpj) {
   const id=cnpj_(cnpj), client=clientFor_(id), pending=pendingFor_(id);
   const tipo=client?'EXISTENTE':pending?'PENDENTE':'NOVO';
   let email='';
   if(client) {
-    email=String(client['E-MAIL']||'').trim().toLowerCase();
+    email=clientEmail_(client);
     if(!email) {
       const acesso=accessFor_(id).find(r=>String(accessData_(r).email||'').trim());
       if(acesso) email=String(accessData_(acesso).email||'').trim().toLowerCase();
@@ -132,7 +140,7 @@ function cadastrarCliente(data) {
 }
 function authRecord_(cnpj,email) {
   const client=clientFor_(cnpj), accesses=accessFor_(cnpj), latest=accesses[0];
-  if(client && String(client['E-MAIL']).trim().toLowerCase()===email)
+  if(client && clientEmail_(client)===email)
     return {row:client,access:latest,tipo:'EXISTENTE'};
   if(!client){const pending=accesses.find(r=>{const d=accessData_(r);return d.tipo==='PENDENTE' && d.email===email;});
     if(pending)return {row:pending,access:pending,tipo:'PENDENTE'};}
@@ -184,7 +192,7 @@ function profile_(found) {
     cargo:upper_(notes.cargo||'',80),tipo:'PENDENTE',tabela:upper_(row.TABELA||'NOVO',60),condicao:'A VISTA',minimo:''};
   const uf=ufEndereco_(row['ENDEREÇO']);
   return {cnpj:formatCnpj_(digits_(row['CNPJ/CPF'])),nome:upper_(row.CLIENTE||'',140),uf,
-    responsavel:upper_(notes.responsavel||(found.access&&found.access.RESPONSAVEL)||'',100),email:String(row['E-MAIL']||''),
+    responsavel:upper_(notes.responsavel||(found.access&&found.access.RESPONSAVEL)||'',100),email:clientEmail_(row),
     telefone:formatPhone_(notes.telefone||row.TELEFONE||''),cargo:upper_(notes.cargo||'',80),
     tipo:'EXISTENTE',tabela:upper_((found.access&&found.access.TABELA)||row.TABELA||'',60),
     condicao:upper_(row['CONDIÇÃO']||'A VISTA',60),minimo:row['PED. MÍNIMO']};
