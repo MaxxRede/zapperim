@@ -16,8 +16,15 @@ function identificarCnpj(cnpj) {
   const id=cnpj_(cnpj), client=clientFor_(id), pending=pendingFor_(id);
   const tipo=client?'EXISTENTE':pending?'PENDENTE':'NOVO';
   let email='';
-  if(client) email=String(client['E-MAIL']||'').trim().toLowerCase();
-  else if(pending) email=String(accessData_(pending).email||'').trim().toLowerCase();
+  if(client) {
+    email=String(client['E-MAIL']||'').trim().toLowerCase();
+    if(!email) {
+      const acesso=accessFor_(id).find(r=>String(accessData_(r).email||'').trim());
+      if(acesso) email=String(accessData_(acesso).email||'').trim().toLowerCase();
+    }
+  } else if(pending) {
+    email=String(accessData_(pending).email||'').trim().toLowerCase();
+  }
   return {tipo,cnpj:formatCnpj_(id),email};
 }
 function saveAccess_(cnpj,responsavel,tabela,data) {
