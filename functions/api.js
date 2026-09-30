@@ -33,11 +33,16 @@ export async function onRequestPost({request,env}) {
     return Response.json({ok:false,error:'Ação inválida.'},{status:400});
   try {await ensureGasV3(url);}catch(error){return Response.json({ok:false,error:error.message||'Não foi possível validar a versão do GAS.'},{status:503});}
   try {
-    const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:raw,redirect:'follow',signal:AbortSignal.timeout(30000)});
+    const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:raw,redirect:'follow',signal:AbortSignal.timeout(45000)});
     const result=await response.text();
     let parsed;
     try{parsed=JSON.parse(result);}catch(_){return Response.json({ok:false,error:'A resposta do GAS não é JSON. Verifique a implantação /exec e o acesso.'},{status:502});}
     if(!response.ok)return Response.json({ok:false,error:'Falha na API do GAS.'},{status:502});
     return Response.json(parsed,{status:parsed.ok?200:400,headers:{'Cache-Control':'no-store'}});
-  }catch(_){return Response.json({ok:false,error:'Não foi possível acessar o GAS.'},{status:502});}
+  }catch(error){
+    const msg=error?.name==='TimeoutError'||error?.name==='AbortError'
+      ?'O GAS demorou mais de 45 segundos para responder. Verifique a planilha e a implantação /exec.'
+      :'Não foi possível acessar o GAS. Verifique a URL /exec e as permissões da implantação.';
+    return Response.json({ok:false,error:msg},{status:502});
+  }
 }
