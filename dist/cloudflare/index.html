@@ -102,7 +102,11 @@ main{padding-top:8px}
   }catch(e){root.textContent=e.message||String(e);}}
   let timer;
   $('#cnpjForm').addEventListener('submit',e=>{e.preventDefault();run(e.target,async()=>{const c=maskCnpj($('#cnpjForm [name=cnpj]').value);const r=await rpc('identificarCnpj',c);state.cnpj=maskCnpj(r.cnpj);
-    if(r.tipo==='NOVO'){section('register');}else{section('emailStep');$('#emailHelp').textContent=r.tipo==='PENDENTE'?'Seu cadastro aguarda análise. Informe o e-mail utilizado.':'Informe o e-mail cadastrado.';}});});
+    if(r.tipo==='NOVO'){section('register');}else{state.email=String(r.email||'').trim().toLowerCase();section('emailStep');
+      const help=r.tipo==='PENDENTE'?'Seu cadastro aguarda análise. Informe o e-mail utilizado.':'Informe o e-mail cadastrado.';
+      $('#emailHelp').textContent=help+(state.email?' ['+state.email+']':'');
+      if(state.email)$('#emailForm').elements.email.value=state.email;
+    }});});
   $('#registerForm').addEventListener('submit',e=>{e.preventDefault();run(e.target,async()=>{const d=Object.fromEntries(new FormData(e.target));Object.keys(d).forEach(k=>{if(!['email','telefone','cep'].includes(k))d[k]=upper(d[k]);});d.telefone=maskPhone(d.telefone);d.cep=maskCep(d.cep);d.cnpj=maskCnpj(state.cnpj);d.seller=new URLSearchParams(location.search).get('seller')||'';
     const r=await rpc('cadastrarCliente',d);state.email=d.email;section('verify');notice(r.mensagem);});});
   $('#emailForm').addEventListener('submit',e=>{e.preventDefault();run(e.target,async()=>{state.email=e.target.elements.email.value.trim().toLowerCase();const r=await rpc('solicitarCodigo',state.cnpj,state.email);section('verify');notice(r.mensagem);});});
