@@ -87,7 +87,16 @@ function accessFor_(cnpj) {
   return records_('acesso').filter(r=>digits_(r.CNPJ)===cnpj).reverse();
 }
 function clientFor_(cnpj) {
-  return records_('view_bd').find(r=>digits_(r['CNPJ/CPF'])===cnpj);
+  const sh=tab_('view_bd'), last=sh.getLastRow();
+  if(last<2)return null;
+  const ids=sh.getRange(2,1,last-1,1).getDisplayValues();
+  const idx=ids.findIndex(r=>digits_(r[0])===cnpj);
+  if(idx<0)return null;
+  const rowNumber=idx+2;
+  const width=ZAP_SCHEMA.view_bd.length;
+  const headers=sh.getRange(1,1,1,width).getDisplayValues()[0];
+  const values=sh.getRange(rowNumber,1,1,width).getDisplayValues()[0];
+  return Object.fromEntries(headers.map((key,i)=>[key,values[i]]).concat([['_ROW',rowNumber]]));
 }
 function pendingFor_(cnpj) {
   return accessFor_(cnpj).find(r=>accessData_(r).tipo==='PENDENTE');
