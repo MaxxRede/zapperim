@@ -17,8 +17,7 @@ function instalarZapperim() {
   const active=Session.getActiveUser().getEmail(), owner=Session.getEffectiveUser().getEmail();
   if(!active || !owner || active.toLowerCase()!==owner.toLowerCase())
     throw new Error('Instalação permitida somente ao proprietário no editor Apps Script.');
-  const lock=LockService.getScriptLock(); lock.waitLock(30000);
-  try {
+  // Instalação executada manualmente pelo proprietário; não usa Script Lock para evitar timeout por execução concorrente.
     const props=PropertiesService.getScriptProperties();
     const explicit=String(ZAP_TARGET_SPREADSHEET_ID||'').trim();
     const saved=String(props.getProperty('ZAP_BASE_V3_ID')||'').trim();
@@ -54,5 +53,4 @@ function instalarZapperim() {
     const result={url:ss.getUrl(),id:ss.getId(),abas:Object.keys(ZAP_SCHEMA),ambiente:'HOMOLOGACAO'};
     Logger.log('Planilha ZAPerim v3 vinculada: '+result.url);
     return result;
-  }finally{lock.releaseLock();}
 }
