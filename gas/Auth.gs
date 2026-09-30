@@ -13,8 +13,12 @@ function pendingFor_(cnpj) {
   return accessFor_(cnpj).find(r=>accessData_(r).tipo==='PENDENTE');
 }
 function identificarCnpj(cnpj) {
-  const id=cnpj_(cnpj);
-  return {tipo:clientFor_(id)?'EXISTENTE':pendingFor_(id)?'PENDENTE':'NOVO',cnpj:formatCnpj_(id)};
+  const id=cnpj_(cnpj), client=clientFor_(id), pending=pendingFor_(id);
+  const tipo=client?'EXISTENTE':pending?'PENDENTE':'NOVO';
+  let email='';
+  if(client) email=String(client['E-MAIL']||'').trim().toLowerCase();
+  else if(pending) email=String(accessData_(pending).email||'').trim().toLowerCase();
+  return {tipo,cnpj:formatCnpj_(id),email};
 }
 function saveAccess_(cnpj,responsavel,tabela,data) {
   append_('acesso',{ST:'ZAP_PERIM',CNPJ:cnpj,RESPONSAVEL:responsavel,TABELA:tabela,
